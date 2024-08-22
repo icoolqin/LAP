@@ -11,7 +11,7 @@ const HotPosts = () => {
   const fetchHotItems = async (showMessage = false) => {
     setLoading(true);
     try {
-      const response = await fetch('/get-hot-items');
+      const response = await fetch('http://localhost:3000/update-hot-items');
       const result = await response.json();
       setData(result.items);
       if (showMessage) {
