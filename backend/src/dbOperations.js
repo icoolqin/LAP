@@ -1,5 +1,3 @@
-// dbOperations.js
-
 const sqlite3 = require('sqlite3').verbose();
 const DB_PATH = './data/database.sqlite';
 
@@ -8,6 +6,8 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     console.error('Error opening database', err.message);
   } else {
     console.log('Connected to the SQLite database.');
+    
+    // 创建 trending_topics 表
     db.run(`CREATE TABLE IF NOT EXISTS trending_topics (
       id TEXT PRIMARY KEY,
       title TEXT,
@@ -24,12 +24,29 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
       views TEXT
     )`, (err) => {
       if (err) {
-        console.error('Error creating table', err.message);
+        console.error('Error creating trending_topics table', err.message);
+      }
+    });
+
+    // 创建 promotion_items 表
+    db.run(`CREATE TABLE IF NOT EXISTS promotion_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT,
+      name TEXT,
+      description TEXT,
+      method TEXT,
+      type TEXT,
+      additional_info TEXT,
+      status TEXT
+    )`, (err) => {
+      if (err) {
+        console.error('Error creating promotion_items table', err.message);
       }
     });
   }
 });
 
+// 热门帖子功能
 function saveHotItems(items) {
   const stmt = db.prepare(`INSERT OR REPLACE INTO trending_topics (id, title, thumbnail, url, md5, extra, time, nodeids, topicid, domain, sitename, logo, views)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
@@ -57,41 +74,75 @@ function getHotItems() {
     });
   }
   
-// 新增推广标的
-async function addPromotionItem(item) {
-    const { created_at, name, description, method, type, additional_info, status } = item;
-    const sql = `INSERT INTO promotion_items (created_at, name, description, method, type, additional_info, status) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    const result = await db.run(sql, [created_at, name, description, method, type, additional_info, status]);
-    return result.lastID;
+// 推广标的管理功能
+function addPromotionItem(item) {
+    return new Promise((resolve, reject) => {
+        const { created_at, name, description, method, type, additional_info, status } = item;
+        const sql = `INSERT INTO promotion_items (created_at, name, description, method, type, additional_info, status) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [created_at, name, description, method, type, additional_info, status], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.lastID);
+            }
+        });
+    });
 }
 
-// 获取所有推广标的
-async function getAllPromotionItems() {
-    const sql = `SELECT * FROM promotion_items ORDER BY created_at DESC`;
-    const items = await db.all(sql);
-    return items;
+function getAllPromotionItems() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT * FROM promotion_items ORDER BY created_at DESC`;
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
 }
 
-// 更新推广标的
-async function updatePromotionItem(id, updatedItem) {
-    const { name, description, method, type, additional_info, status } = updatedItem;
-    const sql = `UPDATE promotion_items 
-                 SET name = ?, description = ?, method = ?, type = ?, additional_info = ?, status = ?
-                 WHERE id = ?`;
-    await db.run(sql, [name, description, method, type, additional_info, status, id]);
+function updatePromotionItem(id, updatedItem) {
+    return new Promise((resolve, reject) => {
+        const { name, description, method, type, additional_info, status } = updatedItem;
+        const sql = `UPDATE promotion_items 
+                     SET name = ?, description = ?, method = ?, type = ?, additional_info = ?, status = ?
+                     WHERE id = ?`;
+        db.run(sql, [name, description, method, type, additional_info, status, id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
 }
 
-// 删除推广标的
-async function deletePromotionItem(id) {
-    const sql = `DELETE FROM promotion_items WHERE id = ?`;
-    await db.run(sql, [id]);
+function deletePromotionItem(id) {
+    return new Promise((resolve, reject) => {
+        const sql = `DELETE FROM promotion_items WHERE id = ?`;
+        db.run(sql, [id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
 }
 
-// 修改推广标的状态
-async function togglePromotionItemStatus(id, status) {
-    const sql = `UPDATE promotion_items SET status = ? WHERE id = ?`;
-    await db.run(sql, [status, id]);
+function togglePromotionItemStatus(id, status) {
+    return new Promise((resolve, reject) => {
+        const sql = `UPDATE promotion_items SET status = ? WHERE id = ?`;
+        db.run(sql, [status, id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
 }
 
 module.exports = {
