@@ -1,38 +1,25 @@
-.App {
-  text-align: center;
+/* src/App.css */
+.hot-posts-container {
+  padding: 24px;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.ant-table-cell {
+  word-break: break-word; /* 防止长单词溢出 */
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.ant-table-thead > tr > th {
+  white-space: nowrap; /* 保持表头不换行 */
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.ant-table-tbody > tr > td {
+  max-width: 250px; /* 限制单元格宽度 */
+  white-space: nowrap; /* 不换行 */
+  overflow: hidden; /* 隐藏超出内容 */
+  text-overflow: ellipsis; /* 显示省略号 */
 }
 
-.App-link {
-  color: #61dafb;
+/* 针对抽屉、表单等的样式设置 */
+.modal .ant-form-item-label {
+  width: 120px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}

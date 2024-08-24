@@ -1,6 +1,7 @@
 # 运行项目
 ## 运行服务端：
 先启动后端服务：在 backend 里运行：npm start
+如果是想要修改代码后自动重启，运行：npm run dev
 
 ## 运行前端：
 再启动前端服务：在 frontend里运行：PORT=3001 npm start 
