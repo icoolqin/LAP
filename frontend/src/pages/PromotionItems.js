@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select } from 'antd';
 
+const BASE_URL = 'http://localhost:3000';
+
 function PromotionItems() {
     const [items, setItems] = useState([]);
     const [visible, setVisible] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
 
     useEffect(() => {
-        fetch('/promotion-items')
+        fetch(`${BASE_URL}/promotion-items`)
             .then(response => response.json())
             .then(data => setItems(data));
     }, []);
@@ -19,27 +21,27 @@ function PromotionItems() {
 
     const handleSave = (values) => {
         if (currentItem) {
-            fetch(`/promotion-items/${currentItem.id}`, {
+            fetch(`${BASE_URL}/promotion-items/${currentItem.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(values),
             }).then(() => {
-                fetch('/promotion-items')
+                fetch(`${BASE_URL}/promotion-items`)
                     .then(response => response.json())
                     .then(data => setItems(data));
                 setVisible(false);
             });
         } else {
-            fetch('/promotion-items', {
+            fetch(`${BASE_URL}/promotion-items`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(values),
             }).then(() => {
-                fetch('/promotion-items')
+                fetch(`${BASE_URL}/promotion-items`)
                     .then(response => response.json())
                     .then(data => setItems(data));
                 setVisible(false);
@@ -48,24 +50,24 @@ function PromotionItems() {
     };
 
     const handleDelete = (id) => {
-        fetch(`/promotion-items/${id}`, {
+        fetch(`${BASE_URL}/promotion-items/${id}`, {
             method: 'DELETE',
         }).then(() => {
-            fetch('/promotion-items')
+            fetch(`${BASE_URL}/promotion-items`)
                 .then(response => response.json())
                 .then(data => setItems(data));
         });
     };
 
     const handleToggleStatus = (id, status) => {
-        fetch(`/promotion-items/${id}/status`, {
+        fetch(`${BASE_URL}/promotion-items/${id}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ status: status === '启用' ? '停用' : '启用' }),
         }).then(() => {
-            fetch('/promotion-items')
+            fetch(`${BASE_URL}/promotion-items`)
                 .then(response => response.json())
                 .then(data => setItems(data));
         });
@@ -97,14 +99,11 @@ function PromotionItems() {
             </Table>
             <Modal
                 title={currentItem ? '修改推广标的' : '新增推广标的'}
-                visible={visible}
+                open={visible}
                 onCancel={() => setVisible(false)}
-                onOk={() => {
-                    document.getElementById('promotion-form').submit();
-                }}
+                footer={null}
             >
                 <Form
-                    id="promotion-form"
                     initialValues={currentItem}
                     onFinish={handleSave}
                 >
@@ -131,6 +130,11 @@ function PromotionItems() {
                             <Select.Option value="启用">启用</Select.Option>
                             <Select.Option value="停用">停用</Select.Option>
                         </Select>
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit">
+                            保存
+                        </Button>
                     </Form.Item>
                 </Form>
             </Modal>
