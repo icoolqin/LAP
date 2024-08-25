@@ -176,7 +176,7 @@ function getPromotionItems(filters) {
             params.push(`%${filters.type}%`);
         }
 
-        if (filters.created_at) {
+        if (filters.created_at && filters.created_at.$gte && filters.created_at.$lte) {
             sql += ` AND created_at BETWEEN ? AND ?`;
             params.push(filters.created_at.$gte, filters.created_at.$lte);
         }
@@ -190,7 +190,6 @@ function getPromotionItems(filters) {
         });
     });
 }
-
 
 function addTask(task) {
     return new Promise((resolve, reject) => {
@@ -260,5 +259,6 @@ module.exports = {
     addTask,
     getAllTasks,
     updateTask,
-    deleteTask
+    deleteTask,
+    getPromotionItems
 };

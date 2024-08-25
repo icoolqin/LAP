@@ -3,7 +3,7 @@ const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems } = require('./dbOperations');
 const { getHotItems } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,7 +105,7 @@ app.post('/promotion-items/search', async (req, res) => {
         }
 
         const items = await getPromotionItems(filters);
-        res.json(items || []); // Ensure we always return an array
+        res.json(items || []); // 确保我们总是返回一个数组
     } catch (error) {
         console.error('Error fetching promotion items:', error);
         res.status(500).json({ error: 'Failed to fetch promotion items' });
