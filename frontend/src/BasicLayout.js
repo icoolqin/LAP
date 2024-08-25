@@ -33,7 +33,7 @@ const BasicLayout = () => {
       routes: [
         {
           path: '/announcement/promotion-items',
-          name: '推广标的管理',
+          name: '自建推广标的',
           component: PromotionItems,
         },
       ],
@@ -43,7 +43,7 @@ const BasicLayout = () => {
   const routeMap = {
     '/dashboard': 'Dashboard',
     '/net-world/hot-posts': '热门帖子',
-    '/announcement/promotion-items': '推广标的管理',
+    '/announcement/promotion-items': '自建推广标的',
   };
 
   return (
