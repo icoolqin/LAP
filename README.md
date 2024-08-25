@@ -14,7 +14,7 @@
 tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔开）
 
 ## 每日热点的免费接口
-1，当前在用的：https://luckycola.com.cn/public/docs/shares/api/hotnews.html
+1，当前在用的：https://luckycola.com.cn/public/docs/shares/api/hotnews.html，每个月需要重新获取一下接口key
 2，备用每天50次请求的：https://www.juhe.cn/docs/api/id/739
 3，已经被充值了体验的：https://www.tophubdata.com/dashboard
 

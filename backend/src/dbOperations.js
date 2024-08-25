@@ -43,6 +43,22 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         console.error('Error creating promotion_items table', err.message);
       }
     });
+
+    // 创建 tasks 表
+    db.run(`CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT,
+        name TEXT,
+        promotion_count INTEGER,
+        post_count INTEGER,
+        match_count INTEGER,
+        stage TEXT
+    )`, (err) => {
+        if (err) {
+        console.error('Error creating tasks table', err.message);
+        }
+    });
+
   }
 });
 
@@ -145,6 +161,94 @@ function togglePromotionItemStatus(id, status) {
     });
 }
 
+function getPromotionItems(filters) {
+    return new Promise((resolve, reject) => {
+        let sql = `SELECT * FROM promotion_items WHERE 1=1`;
+        const params = [];
+
+        if (filters.name) {
+            sql += ` AND name LIKE ?`;
+            params.push(`%${filters.name}%`);
+        }
+
+        if (filters.type) {
+            sql += ` AND type LIKE ?`;
+            params.push(`%${filters.type}%`);
+        }
+
+        if (filters.created_at) {
+            sql += ` AND created_at BETWEEN ? AND ?`;
+            params.push(filters.created_at.$gte, filters.created_at.$lte);
+        }
+
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+
+function addTask(task) {
+    return new Promise((resolve, reject) => {
+        const { created_at, name, promotion_count, post_count, match_count, stage } = task;
+        const sql = `INSERT INTO tasks (created_at, name, promotion_count, post_count, match_count, stage) 
+                     VALUES (?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [created_at, name, promotion_count, post_count, match_count, stage], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.lastID);
+            }
+        });
+    });
+}
+
+function getAllTasks() {
+    return new Promise((resolve, reject) => {
+        const sql = `SELECT * FROM tasks ORDER BY created_at DESC`;
+        db.all(sql, [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows);
+            }
+        });
+    });
+}
+
+function updateTask(id, updatedTask) {
+    return new Promise((resolve, reject) => {
+        const { name, promotion_count, post_count, match_count, stage } = updatedTask;
+        const sql = `UPDATE tasks 
+                     SET name = ?, promotion_count = ?, post_count = ?, match_count = ?, stage = ?
+                     WHERE id = ?`;
+        db.run(sql, [name, promotion_count, post_count, match_count, stage, id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
+function deleteTask(id) {
+    return new Promise((resolve, reject) => {
+        const sql = `DELETE FROM tasks WHERE id = ?`;
+        db.run(sql, [id], function(err) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(this.changes);
+            }
+        });
+    });
+}
+
 module.exports = {
     saveHotItems, 
     getHotItems,
@@ -152,5 +256,9 @@ module.exports = {
     getAllPromotionItems,
     updatePromotionItem,
     deletePromotionItem,
-    togglePromotionItemStatus
+    togglePromotionItemStatus,
+    addTask,
+    getAllTasks,
+    updateTask,
+    deleteTask
 };

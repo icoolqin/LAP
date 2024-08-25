@@ -89,6 +89,75 @@ app.put('/promotion-items/:id/status', async (req, res) => {
     }
 });
 
+// 查询推广标的状态
+app.post('/promotion-items/search', async (req, res) => {
+    try {
+        const { startTime, endTime, name, type } = req.body;
+
+        const filters = {};
+        if (name) filters.name = name;
+        if (type) filters.type = type;
+        if (startTime && endTime) {
+            filters.created_at = {
+                $gte: startTime,
+                $lte: endTime,
+            };
+        }
+
+        const items = await getPromotionItems(filters);
+        res.json(items || []); // Ensure we always return an array
+    } catch (error) {
+        console.error('Error fetching promotion items:', error);
+        res.status(500).json({ error: 'Failed to fetch promotion items' });
+    }
+});
+
+
+// 获取所有任务
+app.get('/tasks', async (req, res) => {
+    try {
+        const tasks = await getAllTasks();
+        res.json(tasks || []); // 确保返回数组
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch tasks' });
+    }
+});
+
+// 新增任务
+app.post('/tasks', async (req, res) => {
+    try {
+        const task = req.body;
+        task.created_at = Date.now();
+        const id = await addTask(task);
+        res.json({ id });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to add task' });
+    }
+});
+
+// 更新任务
+app.put('/tasks/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updatedTask = req.body;
+        await updateTask(id, updatedTask);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update task' });
+    }
+});
+
+// 删除任务
+app.delete('/tasks/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+        await deleteTask(id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete task' });
+    }
+});
+
   
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

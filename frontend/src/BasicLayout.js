@@ -4,10 +4,11 @@ import { BrowserRouter as Router, Route, Routes, Link, useLocation } from 'react
 import { SmileOutlined } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
 import HotPosts from './pages/HotPosts';
-import PromotionItems from './pages/PromotionItems'; // 引入新页面组件
+import PromotionItems from './pages/PromotionItems'; 
+import TaskManagement from './pages/TaskManagement'; // 引入新页面组件
 
 const BasicLayout = () => {
-  const location = useLocation(); // 获取当前路径
+  const location = useLocation();
   const menuData = [
     {
       path: '/dashboard',
@@ -38,12 +39,25 @@ const BasicLayout = () => {
         },
       ],
     },
+    {
+      path: '/conquer-world',
+      name: '驰骋江山', // 新增的父级菜单
+      icon: <SmileOutlined />,
+      routes: [
+        {
+          path: '/conquer-world/task-management',
+          name: '推广任务管理', // 新增的子级菜单
+          component: TaskManagement,
+        },
+      ],
+    },
   ];
 
   const routeMap = {
     '/dashboard': 'Dashboard',
     '/net-world/hot-posts': '热门帖子',
     '/announcement/promotion-items': '自建推广标的',
+    '/conquer-world/task-management': '推广任务管理', // 新增路由映射
   };
 
   return (
@@ -67,6 +81,7 @@ const BasicLayout = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/net-world/hot-posts" element={<HotPosts />} />
           <Route path="/announcement/promotion-items" element={<PromotionItems />} />
+          <Route path="/conquer-world/task-management" element={<TaskManagement />} /> {/* 新增路由 */}
         </Routes>
       </PageContainer>
     </ProLayout>

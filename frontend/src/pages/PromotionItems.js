@@ -73,11 +73,19 @@ function PromotionItems() {
 
     const columns = [
         {
-            title: '加入日期',
+            title: '加入时间',
             dataIndex: 'created_at',
             key: 'created_at',
-            width: 100,
-            render: (text) => new Date(text).toLocaleDateString(),
+            width: 180,
+            render: (text) => new Date(text).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }).replace(/\//g, '/'),
         },
         {
             title: '标的名称',
@@ -193,7 +201,7 @@ function PromotionItems() {
         <div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-                    新增
+                    新增标的
                 </Button>
             </div>
             <Table
@@ -204,7 +212,7 @@ function PromotionItems() {
                 scroll={{ x: 1300 }}
             />
             <Modal
-                title={currentItem ? '修改推广标的' : '新增'}
+                title={currentItem ? '修改推广标的' : '新增标的'}
                 open={visible}
                 onCancel={() => setVisible(false)}
                 footer={null}
