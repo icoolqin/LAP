@@ -1,9 +1,8 @@
 const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
-const { saveHotItems } = require('./dbOperations');
-const { getHotItems } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems } = require('./dbOperations');
+const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,6 +30,30 @@ app.get('/update-hot-items', async (req, res) => {
       res.status(500).json({ error: 'Failed to retrieve hot items' });
     }
   });
+
+  // 添加查询网罗帖子的接口
+  app.post('/hot-posts/search', async (req, res) => {
+    try {
+        const { startTime, endTime, title, domain, page, pageSize } = req.body;
+
+        const filters = {};
+        if (title) filters.title = title;
+        if (domain) filters.domain = domain;
+        if (startTime && endTime) {
+            filters.time = {
+                $gte: new Date(parseInt(startTime)).toISOString(),
+                $lte: new Date(parseInt(endTime)).toISOString(),
+            };
+        }
+
+        const result = await getHotPosts(filters, page, pageSize);
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching hot posts:', error);
+        res.status(500).json({ error: 'Failed to fetch hot posts' });
+    }
+  });
+
 
 // 获取所有推广标的
 app.get('/promotion-items', async (req, res) => {
@@ -99,8 +122,8 @@ app.post('/promotion-items/search', async (req, res) => {
         if (type) filters.type = type;
         if (startTime && endTime) {
             filters.created_at = {
-                $gte: startTime,
-                $lte: endTime,
+                $gte: parseInt(startTime),
+                $lte: parseInt(endTime),
             };
         }
 
@@ -111,7 +134,6 @@ app.post('/promotion-items/search', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch promotion items' });
     }
 });
-
 
 // 获取所有任务
 app.get('/tasks', async (req, res) => {
@@ -157,6 +179,18 @@ app.delete('/tasks/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to delete task' });
     }
 });
+
+// 创建任务
+app.post('/tasks/create', async (req, res) => {
+    try {
+      const { taskData, promotionItems, hotPosts } = req.body;
+      const taskId = await createTaskWithRelations(taskData, promotionItems, hotPosts);
+      res.json({ success: true, taskId });
+    } catch (error) {
+      console.error('Error creating task:', error);
+      res.status(500).json({ success: false, error: 'Failed to create task' });
+    }
+  });
 
   
 app.listen(PORT, () => {

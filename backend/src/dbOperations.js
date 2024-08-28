@@ -59,6 +59,47 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         }
     });
 
+    // 创建 task_promotion_items 表
+db.run(`CREATE TABLE IF NOT EXISTS task_promotion_items (
+    task_id INTEGER,
+    promotion_item_id INTEGER,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id)
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating task_promotion_items table', err.message);
+    }
+  });
+  
+  // 创建 task_hot_posts 表
+  db.run(`CREATE TABLE IF NOT EXISTS task_hot_posts (
+    task_id INTEGER,
+    hot_post_id TEXT,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating task_hot_posts table', err.message);
+    }
+  });
+  
+  // 创建 task_matches 表
+  db.run(`CREATE TABLE IF NOT EXISTS task_matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER,
+    promotion_item_id INTEGER,
+    hot_post_id TEXT,
+    generated_reply TEXT,
+    status TEXT,
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id),
+    FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
+  )`, (err) => {
+    if (err) {
+      console.error('Error creating task_matches table', err.message);
+    }
+  });
+
   }
 });
 
@@ -89,6 +130,54 @@ function getHotItems() {
       });
     });
   }
+
+// 增加一个获取热门帖子的方法
+function getHotPosts(filters, page = 1, pageSize = 10) {
+    return new Promise((resolve, reject) => {
+        let sql = `SELECT * FROM trending_topics WHERE 1=1`;
+        const params = [];
+
+        if (filters.title) {
+            sql += ` AND title LIKE ?`;
+            params.push(`%${filters.title}%`);
+        }
+
+        if (filters.domain) {
+            sql += ` AND domain LIKE ?`;
+            params.push(`%${filters.domain}%`);
+        }
+
+        if (filters.time && filters.time.$gte && filters.time.$lte) {
+            sql += ` AND time BETWEEN ? AND ?`;
+            params.push(filters.time.$gte, filters.time.$lte);
+        }
+
+        // Add COUNT query to get total number of items
+        const countSql = sql.replace('SELECT *', 'SELECT COUNT(*) as total');
+
+        sql += ` ORDER BY time DESC LIMIT ? OFFSET ?`;
+        params.push(pageSize, (page - 1) * pageSize);
+
+        db.get(countSql, params.slice(0, -2), (err, countRow) => {
+            if (err) {
+                reject(err);
+            } else {
+                db.all(sql, params, (err, rows) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({
+                            items: rows,
+                            total: countRow.total,
+                            page: page,
+                            pageSize: pageSize
+                        });
+                    }
+                });
+            }
+        });
+    });
+}
   
 // 推广标的管理功能
 function addPromotionItem(item) {
@@ -248,9 +337,52 @@ function deleteTask(id) {
     });
 }
 
+function createTaskWithRelations(taskData, promotionItems, hotPosts) {
+    return new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        db.run(`INSERT INTO tasks (created_at, name, promotion_count, post_count, match_count, stage) 
+                VALUES (?, ?, ?, ?, ?, ?)`, 
+                [Date.now(), taskData.name, promotionItems.length, hotPosts.length, 0, '初创'],
+                function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            reject(err);
+            return;
+          }
+
+          const taskId = this.lastID;
+
+          const promotionStmt = db.prepare('INSERT INTO task_promotion_items (task_id, promotion_item_id) VALUES (?, ?)');
+          promotionItems.forEach(item => {
+            promotionStmt.run(taskId, item.id);
+          });
+          promotionStmt.finalize();
+
+          const hotPostStmt = db.prepare('INSERT INTO task_hot_posts (task_id, hot_post_id) VALUES (?, ?)');
+          hotPosts.forEach(post => {
+            hotPostStmt.run(taskId, post.id);
+          });
+          hotPostStmt.finalize();
+
+          db.run('COMMIT', (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              reject(err);
+            } else {
+              resolve(taskId);
+            }
+          });
+        });
+      });
+    });
+  }
+
 module.exports = {
     saveHotItems, 
     getHotItems,
+    getHotPosts,
     addPromotionItem,
     getAllPromotionItems,
     updatePromotionItem,
@@ -260,5 +392,6 @@ module.exports = {
     getAllTasks,
     updateTask,
     deleteTask,
-    getPromotionItems
+    getPromotionItems,
+    createTaskWithRelations
 };

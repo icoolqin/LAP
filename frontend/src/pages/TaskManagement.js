@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Popconfirm, Badge, Tooltip, Drawer, Steps, message, Row, Col } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Popconfirm, Badge, Tooltip, Drawer, Steps, message, Row, Col, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { DatePicker } from 'antd';
 import moment from 'moment';
 
 const { Step } = Steps;
@@ -18,6 +17,15 @@ function TaskManagement() {
     const [promotionItems, setPromotionItems] = useState([]);
     const [selectedItems, setSelectedItems] = useState([]);
     const [filters, setFilters] = useState({});
+
+    const [selectedHotPosts, setSelectedHotPosts] = useState([]);
+    const [hotPostFilters, setHotPostFilters] = useState({});
+    const [hotPosts, setHotPosts] = useState([]);
+    const [hotPostsPagination, setHotPostsPagination] = useState({
+        current: 1,
+        pageSize: 10,
+        total: 0,
+    });
 
     useEffect(() => {
         fetchTasks();
@@ -39,8 +47,8 @@ function TaskManagement() {
 
     const fetchPromotionItems = () => {
         const params = {
-            startTime: filters.dateRange ? filters.dateRange[0].format('YYYY-MM-DD HH:mm:ss') : undefined,
-            endTime: filters.dateRange ? filters.dateRange[1].format('YYYY-MM-DD HH:mm:ss') : undefined,
+            startTime: filters.dateRange ? filters.dateRange[0].valueOf() : undefined,
+            endTime: filters.dateRange ? filters.dateRange[1].valueOf() : undefined,
             name: filters.name || '',
             type: filters.type || '',
         };
@@ -67,7 +75,6 @@ function TaskManagement() {
                 message.error('Failed to fetch promotion items. Please try again.');
             });
     };
-    
 
     const handleQueryAndAdd = () => {
         fetchPromotionItems();
@@ -79,6 +86,10 @@ function TaskManagement() {
 
     const handleDeleteSelectedItem = (id) => {
         setSelectedItems(selectedItems.filter(item => item.id !== id));
+    };
+
+    const handleClearSelectedHotPosts = () => {
+        setSelectedHotPosts([]);
     };
 
     const handleDrawerOpen = () => {
@@ -101,28 +112,39 @@ function TaskManagement() {
 
     const handleFinish = (values) => {
         const taskData = {
-            ...values,
-            stage: '匹配',
-            promotion_count: selectedItems.length,
-            post_count: 0,
-            match_count: 0,
+          name: values.name,
+          stage: '初创', // 设置初始阶段为"初创"
         };
 
-        fetch(`${BASE_URL}/tasks`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(taskData),
-        }).then(response => response.json())
-            .then(data => {
-                if (data.id) {
-                    message.success('任务创建成功');
-                    fetchTasks();
-                    setDrawerVisible(false);
-                } else {
-                    message.error('任务创建失败');
-                }
-            });
-    };
+        const payload = {
+          taskData,
+          promotionItems: selectedItems,
+          hotPosts: selectedHotPosts,
+        };
+
+        fetch(`${BASE_URL}/tasks/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              message.success('任务创建成功');
+              fetchTasks();
+              setDrawerVisible(false);
+              setSelectedItems([]);
+              setSelectedHotPosts([]);
+              form.resetFields();
+            } else {
+              message.error('任务创建失败');
+            }
+          })
+          .catch(error => {
+            console.error('Error creating task:', error);
+            message.error('任务创建失败');
+          });
+      };
 
     const handleEdit = (record) => {
         setCurrentTask(record);
@@ -141,6 +163,114 @@ function TaskManagement() {
                 console.error('Error deleting task:', error);
             });
     };
+
+    const fetchHotPosts = (page = 1, pageSize = 10) => {
+        const params = {
+            startTime: hotPostFilters.dateRange ? hotPostFilters.dateRange[0].valueOf() : undefined,
+            endTime: hotPostFilters.dateRange ? hotPostFilters.dateRange[1].valueOf() : undefined,
+            title: hotPostFilters.title || '',
+            domain: hotPostFilters.domain || '',
+            page,
+            pageSize,
+        };
+
+        fetch(`${BASE_URL}/hot-posts/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(params),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.items && Array.isArray(data.items)) {
+                setHotPosts(data.items);
+                setHotPostsPagination({
+                    current: page,
+                    pageSize: pageSize,
+                    total: data.total,
+                });
+                // 直接将查询到的帖子添加到已选列表
+                setSelectedHotPosts(prevSelected => {
+                    const newItems = data.items.filter(item => !prevSelected.some(prevItem => prevItem.id === item.id));
+                    return [...prevSelected, ...newItems];
+                });
+            } else {
+                console.error('Received invalid data:', data);
+                message.error('Failed to fetch hot posts. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Failed to fetch hot posts:', error);
+            message.error('Failed to fetch hot posts. Please try again.');
+        });
+    };
+
+    
+    const handleQueryAndAddHotPosts = () => {
+        fetchHotPosts(1, hotPostsPagination.pageSize);
+    };
+
+    const handleHotPostTableChange = (pagination) => {
+        fetchHotPosts(pagination.current, pagination.pageSize);
+    };
+    
+    const handleDeleteSelectedHotPost = (id) => {
+        setSelectedHotPosts(selectedHotPosts.filter(item => item.id !== id));
+    };
+    
+    const hotPostColumns = [
+        {
+            title: 'Date',
+            dataIndex: 'time',
+            key: 'time',
+            render: (text) => {
+                const date = moment(text * 1000); 
+                return date.isValid() ? date.format('YYYY-MM-DD HH:mm:ss') : 'Invalid date';
+            },
+        },
+        {
+            title: 'Title',
+            dataIndex: 'title',
+            key: 'title',
+        },
+        {
+            title: 'Domain',
+            dataIndex: 'domain',
+            key: 'domain',
+        },
+        {
+            title: '操作',
+            key: 'action',
+            render: (_, record) => (
+                <Button type="link" onClick={() => handleDeleteSelectedHotPost(record.id)}>
+                    删除
+                </Button>
+            ),
+        },
+    ];
+    
+    const hotPostFilterForm = (
+        <Form layout="inline" style={{ marginBottom: 16 }}>
+            <Form.Item label="日期">
+                <DatePicker.RangePicker
+                    showTime={{ format: 'HH:mm:ss' }}
+                    format="YYYY-MM-DD HH:mm:ss"
+                    onChange={(dates) => setHotPostFilters({ ...hotPostFilters, dateRange: dates })}
+                />
+            </Form.Item>
+            <Form.Item label="标题">
+                <Input
+                    placeholder="请输入标题"
+                    onChange={(e) => setHotPostFilters({ ...hotPostFilters, title: e.target.value })}
+                />
+            </Form.Item>
+            <Form.Item label="域名">
+                <Input
+                    placeholder="请输入域名"
+                    onChange={(e) => setHotPostFilters({ ...hotPostFilters, domain: e.target.value })}
+                />
+            </Form.Item>
+        </Form>
+    );
 
     const columns = [
         {
@@ -325,11 +455,26 @@ function TaskManagement() {
         {
             title: '选择网罗帖子',
             content: (
-                <div>
-                    {/* 这里放置选择网罗帖子的组件 */}
-                </div>
+                <>
+                    {hotPostFilterForm}
+                    <Row style={{ marginBottom: 16 }}>
+                        <Col>
+                            <Button type="primary" onClick={handleQueryAndAddHotPosts}>查询并添加</Button>
+                        </Col>
+                        <Col>
+                            <Button style={{ marginLeft: 8 }} onClick={handleClearSelectedHotPosts}>清空所选</Button>
+                        </Col>
+                    </Row>
+                    <Table
+                        columns={hotPostColumns}
+                        dataSource={hotPosts}
+                        rowKey="id"
+                        pagination={hotPostsPagination}
+                        onChange={handleHotPostTableChange}
+                    />
+                </>
             ),
-        },
+        }
     ];
 
     return (
