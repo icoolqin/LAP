@@ -2,7 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -141,7 +141,8 @@ app.get('/tasks', async (req, res) => {
         const tasks = await getAllTasks();
         res.json(tasks || []); // 确保返回数组
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch tasks' });
+        console.error('Error fetching tasks:', error);
+        res.status(500).json({ error: 'Failed to fetch tasks', details: error.message });
     }
 });
 

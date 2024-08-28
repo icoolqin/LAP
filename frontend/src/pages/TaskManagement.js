@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Popconfirm, Badge, Tooltip, Drawer, Steps, message, Row, Col, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import moment from 'moment';
 
 const { Step } = Steps;
@@ -277,8 +277,13 @@ function TaskManagement() {
             title: '创建时间',
             dataIndex: 'created_at',
             key: 'created_at',
-            width: 150,
-            render: (text) => new Date(text).toLocaleString(),
+            width: 180,
+            render: (text) => {
+                const timestamp = parseInt(text.toString().slice(0, 13), 10); 
+                const date = new Date(timestamp);
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+            },
+                      
         },
         {
             title: '任务名称',
@@ -319,6 +324,7 @@ function TaskManagement() {
             width: 150,
             render: (stage) => {
                 const stageMap = {
+                    '初创': 'processing',
                     '匹配': 'processing',
                     '生成': 'processing',
                     '发布': 'processing',
@@ -333,7 +339,7 @@ function TaskManagement() {
             title: '操作',
             key: 'action',
             fixed: 'right',
-            width: 200,
+            width: 120,
             render: (_, record) => (
                 <span>
                     <Tooltip title="编辑">
@@ -346,7 +352,7 @@ function TaskManagement() {
                     <Tooltip title="执行">
                         <Button
                             type="link"
-                            icon={<EditOutlined />}
+                            icon={<PlayCircleOutlined />}
                             onClick={() => {/* 打开抽屉的功能，后面实现 */}}
                         />
                     </Tooltip>

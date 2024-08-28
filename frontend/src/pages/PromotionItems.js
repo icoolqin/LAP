@@ -133,7 +133,7 @@ function PromotionItems() {
             title: '标的类型',
             dataIndex: 'type',
             key: 'type',
-            width: 100,
+            width: 150,
         },
         {
             title: '补充信息',
