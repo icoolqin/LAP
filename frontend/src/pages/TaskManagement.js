@@ -13,10 +13,12 @@ function TaskManagement() {
     const [currentStep, setCurrentStep] = useState(0);
     const [currentTask, setCurrentTask] = useState(null);
     const [form] = Form.useForm();
+    const [taskName, setTaskName] = useState('');
 
     const [promotionItems, setPromotionItems] = useState([]);
     const [selectedItems, setSelectedItems] = useState([]);
     const [filters, setFilters] = useState({});
+    const [isEditing, setIsEditing] = useState(false);
 
     const [selectedHotPosts, setSelectedHotPosts] = useState([]);
     const [hotPostFilters, setHotPostFilters] = useState({});
@@ -90,21 +92,40 @@ function TaskManagement() {
 
     const handleClearSelectedHotPosts = () => {
         setSelectedHotPosts([]);
-    };
+        setHotPosts([]); 
+      };
 
-    const handleDrawerOpen = () => {
+      const handleDrawerOpen = () => {
         setDrawerVisible(true);
         setCurrentStep(0);
         form.resetFields();
-    };
+        setSelectedItems([]);
+        setSelectedHotPosts([]); 
+        setHotPosts([]); 
+      };
 
-    const handleDrawerClose = () => {
+      const handleDrawerClose = () => {
         setDrawerVisible(false);
-    };
+        setIsEditing(false);
+        setCurrentTask(null);
+        form.resetFields();
+        setSelectedItems([]);
+        setSelectedHotPosts([]);
+        setHotPosts([]);
+      };
 
     const handleNext = () => {
-        setCurrentStep(currentStep + 1);
-    };
+        if (currentStep === 0) {
+          form.validateFields().then(() => {
+            setTaskName(form.getFieldValue('name'));
+            setCurrentStep(currentStep + 1);
+          }).catch((error) => {
+            console.error('Validation failed:', error);
+          });
+        } else {
+          setCurrentStep(currentStep + 1);
+        }
+      };
 
     const handlePrevious = () => {
         setCurrentStep(currentStep - 1);
@@ -112,51 +133,77 @@ function TaskManagement() {
 
     const handleFinish = (values) => {
         const taskData = {
-          name: values.name,
-          stage: '初创', // 设置初始阶段为"初创"
+            name: form.getFieldValue('name'),
+            stage: isEditing ? currentTask.stage : '初创',
         };
 
         const payload = {
-          taskData,
-          promotionItems: selectedItems,
-          hotPosts: selectedHotPosts,
+            taskData,
+            promotionItems: selectedItems,
+            hotPosts: selectedHotPosts,
         };
 
-        fetch(`${BASE_URL}/tasks/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+        const url = isEditing ? `${BASE_URL}/tasks/${currentTask.id}` : `${BASE_URL}/tasks/create`;
+        const method = isEditing ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
         })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              message.success('任务创建成功');
-              fetchTasks();
-              setDrawerVisible(false);
-              setSelectedItems([]);
-              setSelectedHotPosts([]);
-              form.resetFields();
-            } else {
-              message.error('任务创建失败');
-            }
-          })
-          .catch(error => {
-            console.error('Error creating task:', error);
-            message.error('任务创建失败');
-          });
-      };
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    message.success(isEditing ? '任务更新成功' : '任务创建成功');
+                    fetchTasks();
+                    handleDrawerClose();
+                } else {
+                    message.error(isEditing ? '任务更新失败' : '任务创建失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                message.error(isEditing ? '任务更新失败' : '任务创建失败');
+            });
+    };
 
     const handleEdit = (record) => {
         setCurrentTask(record);
         setDrawerVisible(true);
+        setIsEditing(true);
         setCurrentStep(0);
+        form.setFieldsValue({
+            name: record.name,
+        });
+        setSelectedItems([]);
+        setSelectedHotPosts([]);
+        setHotPosts([]);
+        // Fetch and set selected promotion items
+        fetch(`${BASE_URL}/tasks/${record.id}/promotion-items`)
+            .then(response => response.json())
+            .then(data => setSelectedItems(data))
+            .catch(error => console.error('Error fetching promotion items:', error));
+
+        // Fetch and set selected hot posts
+        fetch(`${BASE_URL}/tasks/${record.id}/hot-posts`)
+            .then(response => response.json())
+            .then(data => {
+            setSelectedHotPosts(data);
+            setHotPosts(data); // 同时更新热门帖子列表
+            })
+            .catch(error => console.error('Error fetching hot posts:', error));
     };
 
     const handleDelete = (id) => {
         fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE' })
-            .then(() => {
-                message.success('任务已删除');
-                fetchTasks();
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    message.success('任务已删除');
+                    fetchTasks(); // 重新获取任务列表
+                } else {
+                    throw new Error('Delete operation was not successful');
+                }
             })
             .catch(error => {
                 message.error('删除任务失败');
@@ -166,8 +213,8 @@ function TaskManagement() {
 
     const fetchHotPosts = (page = 1, pageSize = 10) => {
         const params = {
-            startTime: hotPostFilters.dateRange ? hotPostFilters.dateRange[0].valueOf() : undefined,
-            endTime: hotPostFilters.dateRange ? hotPostFilters.dateRange[1].valueOf() : undefined,
+            startTime: hotPostFilters.dateRange ? Math.floor(hotPostFilters.dateRange[0].valueOf() / 1000) : undefined,
+            endTime: hotPostFilters.dateRange ? Math.floor(hotPostFilters.dateRange[1].valueOf() / 1000) : undefined,
             title: hotPostFilters.title || '',
             domain: hotPostFilters.domain || '',
             page,
@@ -214,8 +261,9 @@ function TaskManagement() {
     };
     
     const handleDeleteSelectedHotPost = (id) => {
-        setSelectedHotPosts(selectedHotPosts.filter(item => item.id !== id));
-    };
+        setSelectedHotPosts(prevSelected => prevSelected.filter(item => item.id !== id));
+        setHotPosts(prevHotPosts => prevHotPosts.filter(item => item.id !== id));
+      };      
     
     const hotPostColumns = [
         {
@@ -427,15 +475,15 @@ function TaskManagement() {
         {
             title: '填写任务名称',
             content: (
-                <Form.Item
-                    name="name"
-                    label="任务名称"
-                    rules={[{ required: true, message: '请输入任务名称' }]}
-                >
-                    <Input />
-                </Form.Item>
+              <Form.Item
+                name="name"
+                label="任务名称"
+                rules={[{ required: true, message: '请输入任务名称' }]}
+              >
+                <Input onChange={(e) => setTaskName(e.target.value)} />
+              </Form.Item>
             ),
-        },
+          },
         {
             title: '选择推广标的',
             content: (
@@ -498,46 +546,45 @@ function TaskManagement() {
                 scroll={{ x: 1300 }}
             />
             <Drawer
-                title="新增任务"
+                title={isEditing ? "编辑任务" : "新增任务"}
                 width="80%"
                 onClose={handleDrawerClose}
                 visible={drawerVisible}
                 bodyStyle={{ paddingBottom: 80 }}
             >
                 <Steps current={currentStep}>
-                    {steps.map((step, index) => (
-                        <Step key={index} title={step.title} />
-                    ))}
-                </Steps>
-                <Form
-                    form={form}
-                    layout="vertical"
-                    hideRequiredMark
-                    initialValues={{}}
-                    onFinish={handleFinish}
-                    style={{ marginTop: 24 }}
-                >
-                    {steps[currentStep].content}
-                    <div style={{ marginTop: 24 }}>
-                        {currentStep > 0 && (
-                            <Button style={{ margin: '0 8px' }} onClick={handlePrevious}>
-                                上一步
-                            </Button>
-                        )}
-                        {currentStep < steps.length - 1 && (
-                            <Button type="primary" onClick={handleNext}>
-                                下一步
-                            </Button>
-                        )}
-                        {currentStep === steps.length - 1 && (
-                            <Button type="primary" htmlType="submit">
-                                完成
-                            </Button>
-                        )}
-                    </div>
-                </Form>
-            </Drawer>
-        </div>
+          {steps.map((step, index) => (
+            <Step key={index} title={step.title} />
+          ))}
+        </Steps>
+        <Form
+          form={form}
+          layout="vertical"
+          hideRequiredMark
+          initialValues={{}}
+          style={{ marginTop: 24 }}
+        >
+          {steps[currentStep].content}
+          <div style={{ marginTop: 24 }}>
+            {currentStep > 0 && (
+              <Button style={{ margin: '0 8px' }} onClick={handlePrevious}>
+                上一步
+              </Button>
+            )}
+            {currentStep < steps.length - 1 && (
+              <Button type="primary" onClick={handleNext}>
+                下一步
+              </Button>
+            )}
+            {currentStep === steps.length - 1 && (
+              <Button type="primary" onClick={handleFinish}>
+                完成
+              </Button>
+            )}
+          </div>
+        </Form>
+      </Drawer>
+    </div>
     );
 }
 

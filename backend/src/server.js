@@ -2,7 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,8 +41,8 @@ app.get('/update-hot-items', async (req, res) => {
         if (domain) filters.domain = domain;
         if (startTime && endTime) {
             filters.time = {
-                $gte: new Date(parseInt(startTime)).toISOString(),
-                $lte: new Date(parseInt(endTime)).toISOString(),
+                $gte: parseInt(startTime),
+                $lte: parseInt(endTime),
             };
         }
 
@@ -158,18 +158,6 @@ app.post('/tasks', async (req, res) => {
     }
 });
 
-// 更新任务
-app.put('/tasks/:id', async (req, res) => {
-    try {
-        const id = req.params.id;
-        const updatedTask = req.body;
-        await updateTask(id, updatedTask);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to update task' });
-    }
-});
-
 // 删除任务
 app.delete('/tasks/:id', async (req, res) => {
     try {
@@ -190,6 +178,43 @@ app.post('/tasks/create', async (req, res) => {
     } catch (error) {
       console.error('Error creating task:', error);
       res.status(500).json({ success: false, error: 'Failed to create task' });
+    }
+  });
+
+  // Get promotion items for a specific task
+app.get('/tasks/:id/promotion-items', async (req, res) => {
+    try {
+      const taskId = req.params.id;
+      const items = await getTaskPromotionItems(taskId);
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching task promotion items:', error);
+      res.status(500).json({ error: 'Failed to fetch task promotion items' });
+    }
+  });
+  
+  // Get hot posts for a specific task
+  app.get('/tasks/:id/hot-posts', async (req, res) => {
+    try {
+      const taskId = req.params.id;
+      const posts = await getTaskHotPosts(taskId);
+      res.json(posts);
+    } catch (error) {
+      console.error('Error fetching task hot posts:', error);
+      res.status(500).json({ error: 'Failed to fetch task hot posts' });
+    }
+  });
+  
+  // Update a task
+  app.put('/tasks/:id', async (req, res) => {
+    try {
+      const taskId = req.params.id;
+      const { taskData, promotionItems, hotPosts } = req.body;
+      await updateTaskWithRelations(taskId, taskData, promotionItems, hotPosts);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating task:', error);
+      res.status(500).json({ success: false, error: 'Failed to update task' });
     }
   });
 

@@ -308,22 +308,6 @@ function getAllTasks() {
     });
 }
 
-function updateTask(id, updatedTask) {
-    return new Promise((resolve, reject) => {
-        const { name, promotion_count, post_count, match_count, stage } = updatedTask;
-        const sql = `UPDATE tasks 
-                     SET name = ?, promotion_count = ?, post_count = ?, match_count = ?, stage = ?
-                     WHERE id = ?`;
-        db.run(sql, [name, promotion_count, post_count, match_count, stage, id], function(err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(this.changes);
-            }
-        });
-    });
-}
-
 function deleteTask(id) {
     return new Promise((resolve, reject) => {
         const sql = `DELETE FROM tasks WHERE id = ?`;
@@ -379,6 +363,88 @@ function createTaskWithRelations(taskData, promotionItems, hotPosts) {
     });
   }
 
+  function getTaskPromotionItems(taskId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT pi.* 
+        FROM promotion_items pi
+        JOIN task_promotion_items tpi ON pi.id = tpi.promotion_item_id
+        WHERE tpi.task_id = ?
+      `;
+      db.all(sql, [taskId], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  }
+  
+  function getTaskHotPosts(taskId) {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT tt.* 
+        FROM trending_topics tt
+        JOIN task_hot_posts thp ON tt.id = thp.hot_post_id
+        WHERE thp.task_id = ?
+      `;
+      db.all(sql, [taskId], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  }
+  
+  function updateTaskWithRelations(taskId, taskData, promotionItems, hotPosts) {
+    return new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+  
+        // Update task data
+        db.run(`UPDATE tasks SET name = ?, promotion_count = ?, post_count = ?, stage = ? WHERE id = ?`, 
+          [taskData.name, promotionItems.length, hotPosts.length, taskData.stage, taskId],
+          (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              reject(err);
+              return;
+            }
+  
+            // Delete existing relations
+            db.run(`DELETE FROM task_promotion_items WHERE task_id = ?`, [taskId]);
+            db.run(`DELETE FROM task_hot_posts WHERE task_id = ?`, [taskId]);
+  
+            // Insert new relations
+            const promotionStmt = db.prepare('INSERT INTO task_promotion_items (task_id, promotion_item_id) VALUES (?, ?)');
+            promotionItems.forEach(item => {
+              promotionStmt.run(taskId, item.id);
+            });
+            promotionStmt.finalize();
+  
+            const hotPostStmt = db.prepare('INSERT INTO task_hot_posts (task_id, hot_post_id) VALUES (?, ?)');
+            hotPosts.forEach(post => {
+              hotPostStmt.run(taskId, post.id);
+            });
+            hotPostStmt.finalize();
+  
+            db.run('COMMIT', (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
+          }
+        );
+      });
+    });
+  }
+
 module.exports = {
     saveHotItems, 
     getHotItems,
@@ -390,8 +456,10 @@ module.exports = {
     togglePromotionItemStatus,
     addTask,
     getAllTasks,
-    updateTask,
     deleteTask,
     getPromotionItems,
-    createTaskWithRelations
+    createTaskWithRelations,
+    getTaskPromotionItems,
+    getTaskHotPosts,
+    updateTaskWithRelations
 };
