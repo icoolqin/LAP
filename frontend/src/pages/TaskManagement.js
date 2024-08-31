@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Popconfirm, Badge, Tooltip, Drawer, Steps, message, Row, Col, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import moment from 'moment';
+import { Link } from 'react-router-dom';
 
 const { Step } = Steps;
 
@@ -398,11 +399,16 @@ function TaskManagement() {
                         />
                     </Tooltip>
                     <Tooltip title="执行">
-                        <Button
+                        <a 
+                            href={`/conquer-world/task-execution/${record.id}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                        >
+                            <Button
                             type="link"
                             icon={<PlayCircleOutlined />}
-                            onClick={() => {/* 打开抽屉的功能，后面实现 */}}
-                        />
+                            />
+                        </a>
                     </Tooltip>
                     <Popconfirm
                         title="确定要删除吗？"

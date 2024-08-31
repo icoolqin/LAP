@@ -2,7 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -217,6 +217,30 @@ app.get('/tasks/:id/promotion-items', async (req, res) => {
       res.status(500).json({ success: false, error: 'Failed to update task' });
     }
   });
+
+// 获取任务执行详情
+app.get('/tasks/:id/execution', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const executionDetails = await getTaskExecutionDetails(taskId);
+    res.json(executionDetails);
+  } catch (error) {
+    console.error('Error fetching task execution details:', error);
+    res.status(500).json({ error: 'Failed to fetch task execution details' });
+  }
+});
+
+// 删除任务执行条目
+app.delete('/task-executions/:id', async (req, res) => {
+  try {
+    const executionId = req.params.id;
+    await deleteTaskExecution(executionId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting task execution:', error);
+    res.status(500).json({ error: 'Failed to delete task execution' });
+  }
+});
 
   
 app.listen(PORT, () => {
