@@ -99,9 +99,9 @@ db.run(`CREATE TABLE IF NOT EXISTS task_promotion_items (
       console.error('Error creating task_matches table', err.message);
     }
   });
-
   }
 });
+
 
 // 热门帖子功能
 function saveHotItems(items) {
