@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Table, Button, message, Typography, Row, Col, Card } from 'antd';
+import { Table, Button, message, Typography, Row, Col, Card, Tooltip } from 'antd';
+import { Divider } from 'antd';
 
 const { Title } = Typography;
+const BASE_URL = 'http://localhost:3000';
 
 const TaskExecution = () => {
   const { id } = useParams();
@@ -17,7 +19,10 @@ const TaskExecution = () => {
 
   const fetchTaskDetails = async () => {
     try {
-      const response = await fetch(`/tasks/${id}`);
+      const response = await fetch(`${BASE_URL}/tasks/${id}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
       const data = await response.json();
       setTaskDetails(data);
     } catch (error) {
@@ -28,7 +33,10 @@ const TaskExecution = () => {
 
   const fetchExecutionData = async () => {
     try {
-      const response = await fetch(`/tasks/${id}/execution`);
+      const response = await fetch(`${BASE_URL}/tasks/${id}/execution`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
       const data = await response.json();
       setExecutionData(data);
       setLoading(false);
@@ -41,7 +49,7 @@ const TaskExecution = () => {
 
   const handleMatch = async () => {
     try {
-      await fetch(`/tasks/${id}/match`, { method: 'POST' });
+      await fetch(`${BASE_URL}/tasks/${id}/match`, { method: 'POST' });
       message.success('Matching completed');
       fetchExecutionData();
     } catch (error) {
@@ -52,7 +60,7 @@ const TaskExecution = () => {
 
   const handleGenerateReplies = async () => {
     try {
-      await fetch(`/tasks/${id}/generate-replies`, { method: 'POST' });
+      await fetch(`${BASE_URL}/tasks/${id}/generate-replies`, { method: 'POST' });
       message.success('Replies generated');
       fetchExecutionData();
     } catch (error) {
@@ -63,7 +71,7 @@ const TaskExecution = () => {
 
   const handlePublishReplies = async () => {
     try {
-      await fetch(`/tasks/${id}/publish-replies`, { method: 'POST' });
+      await fetch(`${BASE_URL}/tasks/${id}/publish-replies`, { method: 'POST' });
       message.success('Replies published');
       fetchExecutionData();
     } catch (error) {
@@ -74,7 +82,7 @@ const TaskExecution = () => {
 
   const handleDelete = async (executionId) => {
     try {
-      await fetch(`/task-executions/${executionId}`, { method: 'DELETE' });
+      await fetch(`${BASE_URL}/task-executions/${executionId}`, { method: 'DELETE' });
       message.success('Execution record deleted');
       fetchExecutionData();
     } catch (error) {
@@ -113,21 +121,32 @@ const TaskExecution = () => {
     },
   ];
 
+  const truncateText = (text, length) => {
+    if (text.length <= length) return text;
+    return `${text.slice(0, length)}...`;
+  };
+
   return (
     <div className="task-execution-container">
-      <Title level={2}>{taskDetails?.name || '任务执行'}</Title>
-
       <Row gutter={16} style={{ marginBottom: 16 }} align="middle" justify="space-between">
-        <Col>
-          <Card className="task-info-card" bodyStyle={{ padding: '12px 24px' }}>
-            <Row gutter={16}>
+        <Col span={24}>
+        <Card className="task-info-card" style={{ body: { padding: '12px 24px' } }}>
+            <Row gutter={16} align="middle">
+              <Col>
+                <Tooltip title={taskDetails?.name}>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {truncateText(taskDetails?.name || '', 8)}
+                  </span>
+                </Tooltip>
+              </Col>
+              <Divider type="vertical" style={{ height: '20px', margin: '0 16px' }} />
               <Col><strong>推广标的数:</strong> {taskDetails?.promotion_count || '-'}</Col>
               <Col><strong>网罗帖子数:</strong> {taskDetails?.post_count || '-'}</Col>
               <Col><strong>匹配数:</strong> {executionData.length || '-'}</Col>
             </Row>
           </Card>
         </Col>
-        <Col>
+        <Col span={24} style={{ marginTop: 16, textAlign: 'right' }}>
           <Button type="primary" onClick={handleMatch} style={{ marginRight: 8 }}>进行匹配</Button>
           <Button onClick={handleGenerateReplies} style={{ marginRight: 8 }}>生成跟帖</Button>
           <Button onClick={handlePublishReplies}>发布跟帖</Button>

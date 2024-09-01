@@ -9,6 +9,9 @@
 
 网罗天下 - 热门帖子 页面：http://localhost:3000/net-world/hot-posts
 
+## 本地llama运行命令
+命令：ollama run llama3.1
+
 
 ## 打印目录树的命令
 tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔开）

@@ -311,6 +311,19 @@ function getAllTasks() {
     });
 }
 
+function getTaskById(id) {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM tasks WHERE id = ?`;
+    db.get(sql, [id], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
 function deleteTask(id) {
     return new Promise((resolve, reject) => {
         const sql = `DELETE FROM tasks WHERE id = ?`;
@@ -497,6 +510,7 @@ module.exports = {
     togglePromotionItemStatus,
     addTask,
     getAllTasks,
+    getTaskById,
     deleteTask,
     getPromotionItems,
     createTaskWithRelations,
