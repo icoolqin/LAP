@@ -21,5 +21,153 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 2，备用每天50次请求的：https://www.juhe.cn/docs/api/id/739
 3，已经被充值了体验的：https://www.tophubdata.com/dashboard
 
-## AI营销系统的prompt
-Prompt起项目：我打算开发一个项目，功能是：每天自动爬取各大网站热门帖子，根据帖子内容从推广库里找对应的项目来作推广，就是回帖子的时候找个最相关的推广项目也巧妙的放进帖子里。我打算现在本地开发，测试完毕再部署到云端，你说作为开发小白的我，该怎么开始这个项目呢
+## 各种prompt
+### 1，Prompt起项目：
+我打算开发一个项目，功能是：每天自动爬取各大网站热门帖子，根据帖子内容从推广库里找对应的项目来作推广，就是回帖子的时候找个最相关的推广项目也巧妙的放进帖子里。我打算现在本地开发，测试完毕再部署到云端，你说作为开发小白的我，该怎么开始这个项目呢
+### 2，与AI一起编程的：
+- 最佳实践
+- 注意代码可读性
+- 仔细阅读项目代码，如果有需要澄清或补充的知识，请尽管问，在明确了背景知识后开始基于项目代码思考新功能方案
+- 一步步思考，将大任务分解成小步骤,逐个完成
+
+### 3，推广标的与帖子匹配：
+# Matching Promotional Items with Posts
+
+You are an AI assistant tasked with matching promotional items with relevant online posts. Your goal is to create meaningful connections between the items and the posts based on their content.
+
+## Input Format
+You will be provided with two types of JSON strings:
+
+1. Promotional items:
+```json
+[
+  {
+    "id": "item1",
+    "name": "产品名称1",
+    "description": "产品描述1",
+    "type": "产品类型1"
+  },
+  {
+    "id": "item2",
+    "name": "产品名称2",
+    "description": "产品描述2",
+    "type": "产品类型2"
+  }
+]
+```
+
+2. Posts:
+```json
+[
+  {
+    "id": "post1",
+    "title": "帖子标题1"
+  },
+  {
+    "id": "post2",
+    "title": "帖子标题2"
+  }
+]
+```
+
+## Task
+Your task is to:
+1. Analyze each promotional item and each post.
+2. Determine which posts are relevant to each promotional item.
+3. Create a JSON output that shows the matches.
+
+## Matching Criteria
+Consider the following when making matches:
+- Relevance of the post title to the promotional item's name, description, or type
+- Potential use cases of the promotional item implied by the post title
+- Similar themes or topics between the promotional item and the post title
+
+## Output Format
+Provide a JSON output with the following structure:
+```json
+{
+  "matches": [
+    {
+      "promotional_item_id": "string",
+      "post_id": "string"
+    },
+    // ... more matches
+  ]
+}
+```
+
+## Example
+Input:
+Promotional Items:
+```json
+[
+  {
+    "id": "promo001",
+    "name": "FitTrack Pro",
+    "description": "An AI-powered fitness app for personalized workouts",
+    "type": "Mobile App"
+  },
+  {
+    "id": "promo002",
+    "name": "EcoClean",
+    "description": "Eco-friendly all-purpose cleaner",
+    "type": "Household Product"
+  }
+]
+```
+
+Posts:
+```json
+[
+  {
+    "id": "post001",
+    "title": "Need help staying motivated with my workout routine"
+  },
+  {
+    "id": "post002",
+    "title": "Looking for natural cleaning solutions for my home"
+  },
+  {
+    "id": "post003",
+    "title": "Best apps for tracking fitness progress?"
+  }
+]
+```
+
+Expected Output:
+```json
+{
+  "matches": [
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post001"
+    },
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post003"
+    },
+    {
+      "promotional_item_id": "promo002",
+      "post_id": "post002"
+    }
+  ]
+}
+```
+
+Please analyze the provided promotional items and posts, then generate a JSON output following this format, showing all relevant matches.
+
+### 生成帖子的：
+考虑加一个匹配分：1~10，用于筛选发帖量，如果匹配太多，就挑匹配分高的发帖；这个放在生成的时候，让AI努力想匹配点，嘿嘿，也许可以搞出来意想不到的跟帖内容
+
+
+
+# 注意事项：
+1，匹配时需要时间，匹配弹窗关闭不了，有进度提示
+我有两份数据，一份是用于推广的商品标题/app名称/服务名称等，一份是互联网帖子，我需要将两份数据作关联匹配，
+
+2，待做：进行匹配的弹窗：
+- 输入prompt，提交
+- Tampermonkey脚本
+- 拿到返回结果
+- 开始拼装prompt
+- 拿到结果存储到数据库
