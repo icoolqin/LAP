@@ -2,7 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
+const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -159,6 +159,18 @@ app.get('/tasks/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching task:', error);
     res.status(500).json({ error: 'Failed to fetch task' });
+  }
+});
+
+// 更新任务的匹配 prompt
+app.put('/tasks/:id/match-prompt', async (req, res) => {
+  try {
+      const taskId = req.params.id;
+      const { matchPrompt } = req.body;
+      await updateTaskMatchPrompt(taskId, matchPrompt);
+      res.json({ success: true });
+  } catch (error) {
+      res.status(500).json({ error: 'Failed to update task match prompt' });
   }
 });
 

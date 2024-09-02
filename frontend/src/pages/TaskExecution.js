@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Table, Button, message, Typography, Row, Col, Card, Tooltip } from 'antd';
+import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip } from 'antd';
 import { Divider } from 'antd';
 
 const { Title } = Typography;
+const { TextArea } = Input;
 const BASE_URL = 'http://localhost:3000';
 
 const TaskExecution = () => {
@@ -11,11 +12,53 @@ const TaskExecution = () => {
   const [taskDetails, setTaskDetails] = useState(null);
   const [executionData, setExecutionData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [matchPromptVisible, setMatchPromptVisible] = useState(false);
+  const [matchPrompt, setMatchPrompt] = useState('');
 
   useEffect(() => {
     fetchTaskDetails();
     fetchExecutionData();
   }, [id]);
+
+  const showMatchPromptModal = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/tasks/${id}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const taskData = await response.json();
+      setMatchPrompt(taskData.match_prompt || '');
+      setMatchPromptVisible(true);
+    } catch (error) {
+      console.error('Error fetching task data:', error);
+      message.error('Failed to load task data');
+    }
+  };
+
+  const handleMatchPromptOk = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/tasks/${id}/match-prompt`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ matchPrompt }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      setMatchPromptVisible(false);
+      message.success('Matching prompt updated');
+      fetchTaskDetails(); // 刷新任务详情
+    } catch (error) {
+      console.error('Error updating match prompt:', error);
+      message.error('Failed to update match prompt');
+    }
+  };
+
+  const handleMatchPromptCancel = () => {
+    setMatchPromptVisible(false);
+  };
 
   const fetchTaskDetails = async () => {
     try {
@@ -147,11 +190,25 @@ const TaskExecution = () => {
           </Card>
         </Col>
         <Col span={24} style={{ marginTop: 16, textAlign: 'right' }}>
-          <Button type="primary" onClick={handleMatch} style={{ marginRight: 8 }}>进行匹配</Button>
+        <Button type="primary" onClick={showMatchPromptModal} style={{ marginRight: 8 }}>进行匹配</Button>
           <Button onClick={handleGenerateReplies} style={{ marginRight: 8 }}>生成跟帖</Button>
           <Button onClick={handlePublishReplies}>发布跟帖</Button>
         </Col>
       </Row>
+
+      <Modal
+                title="匹配推广标的与网罗帖子"
+                visible={matchPromptVisible}
+                onOk={handleMatchPromptOk}
+                onCancel={handleMatchPromptCancel}
+            >
+                  <TextArea
+                    value={matchPrompt}
+                    onChange={(e) => setMatchPrompt(e.target.value)}
+                    placeholder="Enter matching prompt"
+                    autoSize={{ minRows: 4, maxRows: 8 }}
+                  />
+      </Modal>
 
       <Table
         columns={columns}
