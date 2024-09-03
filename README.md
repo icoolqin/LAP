@@ -165,7 +165,6 @@ Please analyze the provided promotional items and posts, then generate a JSON ou
 # 注意事项：
 1，匹配时需要时间，匹配弹窗关闭不了，有进度提示
 我有两份数据，一份是用于推广的商品标题/app名称/服务名称等，一份是互联网帖子，我需要将两份数据作关联匹配。
-2，playwright需要增加一些随机性；
 
 2，待做：进行匹配的弹窗：
 - 输入prompt，提交
@@ -173,3 +172,6 @@ Please analyze the provided promotional items and posts, then generate a JSON ou
 - 拿到返回结果
 - 开始拼装prompt
 - 拿到结果存储到数据库
+匹配的全部工程：https://claude.ai/chat/6ca1372a-27af-43b4-bd56-31db86a440ac
+
+3，playwright需要增加一些随机性；
