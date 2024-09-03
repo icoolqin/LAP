@@ -164,7 +164,8 @@ Please analyze the provided promotional items and posts, then generate a JSON ou
 
 # 注意事项：
 1，匹配时需要时间，匹配弹窗关闭不了，有进度提示
-我有两份数据，一份是用于推广的商品标题/app名称/服务名称等，一份是互联网帖子，我需要将两份数据作关联匹配，
+我有两份数据，一份是用于推广的商品标题/app名称/服务名称等，一份是互联网帖子，我需要将两份数据作关联匹配。
+2，playwright需要增加一些随机性；
 
 2，待做：进行匹配的弹窗：
 - 输入prompt，提交
