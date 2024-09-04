@@ -21,6 +21,42 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 2，备用每天50次请求的：https://www.juhe.cn/docs/api/id/739
 3，已经被充值了体验的：https://www.tophubdata.com/dashboard
 
+## 人家写的把chatGPT web做成API的服务：
+https://github.com/zsodur/chatgpt-api-by-browser-script
+
+## 历史用过的chatGPT账号：
+1，独立的：
+【账号】altitudedaniel1216@hotmail.com
+【密码】qBkaisox1d@e
+【邮箱密码】sonk9485
+2，
+【账号】vetvbfpzzz10@hotmail.com 
+【密码】Store.sorryios.com689
+3，
+【账号】skc532481@hotmail.com
+【密码】Store.sorryios.com810
+4，
+【账号】sapplegdmochealo@mail.com
+【密码】Store.sorryios.com252
+5，
+【账号】amatprimmiva@mail.com
+【密码】Store.sorryios.com982
+6，
+【账号】bordaTemple@hotmail.com
+【密码】Store.sorryios.com834
+7，
+【账号】tipsroldlomerhy@mail.com
+【密码】Store.sorryios.com835
+8，
+【账号】roverlawachel@mail.com
+【密码】Store.sorryios.com
+9，
+【账号】dicatyweedju@mail.com
+【密码】Store.sorryios.com240
+10，
+
+
+
 ## 各种prompt
 ### 1，Prompt起项目：
 我打算开发一个项目，功能是：每天自动爬取各大网站热门帖子，根据帖子内容从推广库里找对应的项目来作推广，就是回帖子的时候找个最相关的推广项目也巧妙的放进帖子里。我打算现在本地开发，测试完毕再部署到云端，你说作为开发小白的我，该怎么开始这个项目呢
