@@ -22,8 +22,10 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 3，已经被充值了体验的：https://www.tophubdata.com/dashboard
 
 ## 人家写的把chatGPT web做成API的服务：
+开源方案合集：https://linux.do/t/topic/62560
 1，浏览器配合油猴脚本方案：https://github.com/zsodur/chatgpt-api-by-browser-script
-2，web2API：https://github.com/xqdoo00o/ChatGPT-to-API/tree/master
+2，web2API的go方案：https://github.com/xqdoo00o/ChatGPT-to-API/tree/master
+3，web2API的Python方案：https://github.com/LanQian528/chat2api
 
 ## 历史用过的chatGPT账号：
 1，独立的：
