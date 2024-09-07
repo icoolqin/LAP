@@ -214,3 +214,4 @@ Please analyze the provided promotional items and posts, then generate a JSON ou
 匹配的全部工程：https://claude.ai/chat/6ca1372a-27af-43b4-bd56-31db86a440ac
 
 3，playwright需要增加一些随机性；
+4，封装chatGPT的API
