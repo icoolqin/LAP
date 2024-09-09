@@ -2,6 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems } = require('./apiClient');
 const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
+const { getTaskData } = require('./taskExecutionService'); 
 const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
 
 const app = express();
@@ -267,6 +268,18 @@ app.delete('/task-executions/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting task execution:', error);
     res.status(500).json({ error: 'Failed to delete task execution' });
+  }
+});
+
+// 新的API端点：获取任务相关数据
+app.post('/tasks/:id/fetch-data', async (req, res) => {
+  const taskId = req.params.id;
+  try {
+    const data = await getTaskData(taskId); 
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching task data:', error);
+    res.status(500).json({ error: 'Failed to fetch task data' });
   }
 });
 

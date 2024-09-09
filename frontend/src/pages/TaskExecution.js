@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip } from 'antd';
-import { Divider } from 'antd';
+import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip, Steps,Divider } from 'antd';
 
 const { Title } = Typography;
 const { TextArea } = Input;
+const { Step } = Steps;
 const BASE_URL = 'http://localhost:3000';
+
 
 const TaskExecution = () => {
   const { id } = useParams();
@@ -14,6 +15,9 @@ const TaskExecution = () => {
   const [loading, setLoading] = useState(true);
   const [matchPromptVisible, setMatchPromptVisible] = useState(false);
   const [matchPrompt, setMatchPrompt] = useState('');
+  const [currentStep, setCurrentStep] = useState(0);
+  const [stepStatus, setStepStatus] = useState(['process', 'wait', 'wait']); 
+
 
   useEffect(() => {
     fetchTaskDetails();
@@ -29,30 +33,72 @@ const TaskExecution = () => {
       const taskData = await response.json();
       setMatchPrompt(taskData.match_prompt || '');
       setMatchPromptVisible(true);
+  
+      // 重置步骤状态
+      setStepStatus(['wait', 'wait', 'wait']); 
+      setCurrentStep(0);
     } catch (error) {
       console.error('Error fetching task data:', error);
       message.error('Failed to load task data');
+    }
+  };  
+
+  // 定义 makeAIRequest 和 saveAIResult 的函数（或者从其他模块引入）
+const makeAIRequest = async (taskData, matchPrompt) => {
+    // 实现与 AI 的交互逻辑
+    // 示例：发送 POST 请求到你的 AI 服务端
+    const response = await fetch(`${BASE_URL}/ai/match`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ taskData, prompt: matchPrompt }),
+    });
+  
+    if (!response.ok) {
+      throw new Error('AI request failed');
+    }
+  
+    return await response.json();
+  };
+  
+  const saveAIResult = async (aiResult) => {
+    // 实现保存结果的逻辑
+    const response = await fetch(`${BASE_URL}/tasks/save-result`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(aiResult),
+    });
+  
+    if (!response.ok) {
+      throw new Error('Failed to save AI result');
     }
   };
 
   const handleMatchPromptOk = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/tasks/${id}/match-prompt`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ matchPrompt }),
-      });
+      // 设置按钮为loading状态
+      setStepStatus(['process', 'wait', 'wait']);
+      setCurrentStep(0);
+  
+      // Step 1: 获取任务相关数据
+      const response = await fetch(`${BASE_URL}/tasks/${id}/fetch-data`, { method: 'POST' });
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error('Failed to fetch task data');
       }
-      setMatchPromptVisible(false);
-      message.success('Matching prompt updated');
-      fetchTaskDetails(); // 刷新任务详情
+      const taskData = await response.json();
+  
+      // 完成第一步，更新前端状态
+      setStepStatus(['finish', 'process', 'wait']);
+      setCurrentStep(1);
+  
+      // 第二步和第三步的逻辑...
     } catch (error) {
-      console.error('Error updating match prompt:', error);
-      message.error('Failed to update match prompt');
+      console.error('Error during matching:', error);
+      message.error('匹配失败');
+      setStepStatus(['error', 'wait', 'wait']);
     }
   };
 
@@ -197,18 +243,25 @@ const TaskExecution = () => {
       </Row>
 
       <Modal
-                title="匹配推广标的与网罗帖子"
-                visible={matchPromptVisible}
-                onOk={handleMatchPromptOk}
-                onCancel={handleMatchPromptCancel}
-            >
-                  <TextArea
-                    value={matchPrompt}
-                    onChange={(e) => setMatchPrompt(e.target.value)}
-                    placeholder="Enter matching prompt"
-                    autoSize={{ minRows: 4, maxRows: 8 }}
-                  />
+        title="匹配推广标的与网罗帖子"
+        visible={matchPromptVisible}
+        onOk={handleMatchPromptOk}
+        onCancel={handleMatchPromptCancel}
+        width={800}
+        >
+        <Steps current={currentStep} style={{ marginBottom: 16 }}>
+            <Step title="获取推广标的与网罗帖子" status={stepStatus[0]} />
+            <Step title="拼装prompt进行AI请求" status={stepStatus[1]} />
+            <Step title="获取AI返回结果并存储" status={stepStatus[2]} />
+        </Steps>
+        <TextArea
+            value={matchPrompt}
+            onChange={(e) => setMatchPrompt(e.target.value)}
+            placeholder="Enter matching prompt"
+            autoSize={{ minRows: 4, maxRows: 8 }}
+        />
       </Modal>
+
 
       <Table
         columns={columns}

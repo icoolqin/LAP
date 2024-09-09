@@ -12,7 +12,6 @@
 ## 本地llama运行命令
 命令：ollama run llama3.1
 
-
 ## 打印目录树的命令
 tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔开）
 
@@ -26,8 +25,11 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 1，浏览器配合油猴脚本方案：https://github.com/zsodur/chatgpt-api-by-browser-script
 2，web2API的go方案：https://github.com/aurora-develop/aurora
 3，web2API的Python方案：https://github.com/LanQian528/chat2api
+- 获取device tocken：https://www.blueskyxn.com/202408/7098.html
+- 获取RefreshToken：https://www.blueskyxn.com/202408/7101.html
 
-## 历史用过的chatGPT账号：
+## 使用chatGPT：
+### 关于账号：
 1，独立的：
 【账号】altitudedaniel1216@hotmail.com
 【密码】qBkaisox1d@e
@@ -57,6 +59,29 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 【账号】dicatyweedju@mail.com
 【密码】Store.sorryios.com240
 10，
+
+### 关于接口：
+请求：
+curl -X POST http://localhost:8766/v1/chat/completions \
+-H "Content-Type: application/json" \
+-d '{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user",
+      "content": "那你有啥爱好么，比如我喜欢吃，哈哈"
+    }
+  ]
+}'
+
+返回：
+{"choices":[{"message":{"content":"我没有个人爱好，但我很喜欢帮助你们发现新事物！比如，了解各种美食、书籍、电影或科技。如果你有兴趣，我可以给你推荐一些相关的内容！你除了喜欢吃，还有其他爱好吗？"},"delta":{"content":""}}]}%
+
+返回需要的是：
+return response["choices"][0]["message"]["content"]
 
 
 

@@ -514,6 +514,7 @@ function deleteTaskExecution(executionId) {
 
 
 module.exports = {
+    db,
     saveHotItems, 
     getHotItems,
     getHotPosts,
