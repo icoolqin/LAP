@@ -99,6 +99,8 @@ return response["choices"][0]["message"]["content"]
 - 我是小白，请给与一些重要细节指导，以确保我可以正确使用代码让程序运行正确
 
 ### 3，推广标的与帖子匹配：
+书写prompt与系统数遍拼接，用"{{json}}"代替
+
 # Matching Promotional Items with Posts
 
 You are an AI assistant tasked with matching promotional items with relevant online posts. Your goal is to create meaningful connections between the items and the posts based on their content.

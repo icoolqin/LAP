@@ -5,7 +5,7 @@ async function getTaskData(taskId) {
     // 获取推广标的
     const promotionItems = await getTaskPromotionItems(taskId);
     const promotionItemsData = promotionItems.map(item => ({
-      id: item.promotion_item_id,
+      id: item.id,
       name: item.name,
       description: item.description
     }));
@@ -13,7 +13,7 @@ async function getTaskData(taskId) {
     // 获取网罗帖子
     const hotPosts = await getTaskHotPosts(taskId);
     const hotPostsData = hotPosts.map(post => ({
-      id: post.hot_post_id,
+      id: post.id,
       title: post.title,
       sitename: post.sitename
     }));
