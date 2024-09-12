@@ -64,6 +64,12 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 10，
 
 ### 关于接口：
+
+#### apiClient.js里的AI服务地址
+如果您想使用特定的 AI 服务，可以这样调用：
+const response = await requestAIService("Your message here", "Default AI");
+如果不指定服务名称，它将默认使用 "Default AI" 服务。
+
 请求：
 curl -X POST http://localhost:8766/v1/chat/completions \
 -H "Content-Type: application/json" \
@@ -75,13 +81,43 @@ curl -X POST http://localhost:8766/v1/chat/completions \
     },
     {
       "role": "user",
-      "content": "那你有啥爱好么，比如我喜欢吃，哈哈"
+      "content": "请把给你的数据做匹配，promotionItems是推广目标，hotPosts是热门帖子，将推广目标与帖子做关联，然后返回结果，这是推广目标与帖子的JSON{{json}},请将匹配结果返回为JSON格式，就像这样：{
+  "matches": [
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post001"
+    },
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post003"
+    },
+    {
+      "promotional_item_id": "promo002",
+      "post_id": "post002"
+    }
+  ]
+}"
     }
   ]
 }'
 
 返回：
-{"choices":[{"message":{"content":"我没有个人爱好，但我很喜欢帮助你们发现新事物！比如，了解各种美食、书籍、电影或科技。如果你有兴趣，我可以给你推荐一些相关的内容！你除了喜欢吃，还有其他爱好吗？"},"delta":{"content":""}}]}%
+{"choices":[{"message":{"content":"好的，这是返回结果：{
+  "matches": [
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post001"
+    },
+    {
+      "promotional_item_id": "promo001",
+      "post_id": "post003"
+    },
+    {
+      "promotional_item_id": "promo002",
+      "post_id": "post002"
+    }
+  ]
+}"},"delta":{"content":""}}]}%
 
 返回需要的是：
 return response["choices"][0]["message"]["content"]
