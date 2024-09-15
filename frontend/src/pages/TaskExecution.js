@@ -17,6 +17,7 @@ const TaskExecution = () => {
   const [matchPrompt, setMatchPrompt] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const [stepStatus, setStepStatus] = useState(['process', 'wait', 'wait']); 
+  const [isExecuting, setIsExecuting] = useState(false);
 
 
   useEffect(() => {
@@ -33,15 +34,13 @@ const TaskExecution = () => {
       const taskData = await response.json();
       setMatchPrompt(taskData.match_prompt || '');
       setMatchPromptVisible(true);
-  
-      // 重置步骤状态
-      setStepStatus(['wait', 'wait', 'wait']); 
+      setStepStatus(['wait', 'wait', 'wait']);
       setCurrentStep(0);
     } catch (error) {
       console.error('Error fetching task data:', error);
       message.error('Failed to load task data');
     }
-  };  
+  };
 
   // 定义 makeAIRequest 和 saveAIResult 的函数（或者从其他模块引入）
 const makeAIRequest = async (taskData, matchPrompt) => {
@@ -78,11 +77,17 @@ const makeAIRequest = async (taskData, matchPrompt) => {
   };
 
   const handleMatchPromptOk = async () => {
+    if (isExecuting) return;
+    setIsExecuting(true);
     try {
+      // Step 1: 获取任务推广标的与网罗帖子
       setStepStatus(['process', 'wait', 'wait']);
       setCurrentStep(0);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+      setStepStatus(['finish', 'process', 'wait']);
+      setCurrentStep(1);
 
-      // 发送请求执行任务
+      // Step 2: 拼装prompt进行AI请求
       const response = await fetch(`${BASE_URL}/tasks/${id}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,10 +98,18 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         throw new Error('Failed to execute task');
       }
 
+      setStepStatus(['finish', 'finish', 'process']);
+      setCurrentStep(2);
+
+      // Step 3: 获取AI返回结果并存储
       const result = await response.json();
       if (result.success) {
         setStepStatus(['finish', 'finish', 'finish']);
         message.success(result.message);
+        
+        // 更新数据库中的 match_prompt
+        await updateMatchPrompt();
+        
         setTimeout(() => {
           setMatchPromptVisible(false);
           fetchExecutionData();
@@ -107,11 +120,29 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     } catch (error) {
       console.error('Error during task execution:', error);
       message.error('任务执行失败');
-      setStepStatus(['error', 'wait', 'wait']);
+      setStepStatus(['error', 'error', 'error']);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const updateMatchPrompt = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/tasks/${id}/match-prompt`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchPrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update match prompt');
+      }
+    } catch (error) {
+      console.error('Error updating match prompt:', error);
+      message.error('Failed to update match prompt');
     }
   };
   
-
   const handleMatchPromptCancel = () => {
     setMatchPromptVisible(false);
   };
@@ -137,14 +168,15 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('Execution data fetched:', data); // 添加调试日志
       setExecutionData(data);
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching execution data:', error);
       message.error('Failed to fetch execution data');
+    } finally {
       setLoading(false);
     }
-  };
+  };  
 
   const handleMatch = async () => {
     try {
@@ -256,19 +288,21 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         title="匹配推广标的与网罗帖子"
         visible={matchPromptVisible}
         onOk={handleMatchPromptOk}
-        onCancel={() => setMatchPromptVisible(false)}
-        width={600}
-        >
+        onCancel={handleMatchPromptCancel}
+        width={900}
+        confirmLoading={isExecuting}
+      >
         <Steps current={currentStep} style={{ marginBottom: 16 }}>
-            <Step title="获取任务推广标的与网罗帖子" status={stepStatus[0]} />
-            <Step title="拼装prompt进行AI请求" status={stepStatus[1]} />
-            <Step title="获取AI返回结果并存储" status={stepStatus[2]} />
+          <Step title="获取任务推广标的与网罗帖子" status={stepStatus[0]} />
+          <Step title="拼装prompt进行AI请求" status={stepStatus[1]} />
+          <Step title="获取AI返回结果并存储" status={stepStatus[2]} />
         </Steps>
-        <Input.TextArea
-            value={matchPrompt}
-            onChange={(e) => setMatchPrompt(e.target.value)}
-            placeholder="Enter matching prompt"
-            autoSize={{ minRows: 4, maxRows: 8 }}
+        <TextArea
+          value={matchPrompt}
+          onChange={(e) => setMatchPrompt(e.target.value)}
+          placeholder="Enter matching prompt"
+          autoSize={{ minRows: 4, maxRows: 8 }}
+          disabled={isExecuting}
         />
       </Modal>
 
