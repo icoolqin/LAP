@@ -1,8 +1,8 @@
 const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems, requestAIService } = require('./apiClient');
-const { executeTask } = require('./taskExecutionService'); 
-const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
+const { executeTask, generateReplies } = require('./taskExecutionService'); 
+const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -281,6 +281,31 @@ app.post('/tasks/:id/execute', async (req, res) => {
   } catch (error) {
     console.error('Error executing task:', error);
     res.status(500).json({ error: 'Failed to execute task' });
+  }
+});
+
+app.post('/tasks/:id/generate-replies', async (req, res) => {
+  const taskId = req.params.id;
+  const { generatePrompt } = req.body;
+
+  try {
+    const result = await generateReplies(taskId, generatePrompt);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error generating replies:', error);
+    res.status(500).json({ error: 'Failed to generate replies' });
+  }
+});
+
+// Add this new endpoint to update the generate prompt
+app.put('/tasks/:id/generate-prompt', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const { generatePrompt } = req.body;
+    await updateTaskGeneratePrompt(taskId, generatePrompt);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update task generate prompt' });
   }
 });
 

@@ -53,7 +53,8 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         post_count INTEGER,
         match_count INTEGER,
         stage TEXT,
-        match_prompt TEXT
+        match_prompt TEXT,
+        generate_prompt TEXT
     )`, (err) => {
         if (err) {
         console.error('Error creating tasks table', err.message);
@@ -351,6 +352,19 @@ function updateTaskMatchPrompt(id, matchPrompt) {
   });
 }
 
+function updateTaskGeneratePrompt(taskId, generatePrompt) {
+  return new Promise((resolve, reject) => {
+    const sql = 'UPDATE tasks SET generate_prompt = ? WHERE id = ?';
+    db.run(sql, [generatePrompt, taskId], (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 function createTaskWithRelations(taskData, promotionItems, hotPosts) {
     return new Promise((resolve, reject) => {
       db.serialize(() => {
@@ -405,7 +419,7 @@ function createTaskWithRelations(taskData, promotionItems, hotPosts) {
         if (err) {
           reject(err);
         } else {
-          resolve(rows);
+          resolve(rows || []);
         }
       });
     });
@@ -423,7 +437,7 @@ function createTaskWithRelations(taskData, promotionItems, hotPosts) {
         if (err) {
           reject(err);
         } else {
-          resolve(rows);
+          resolve(rows || []);
         }
       });
     });
@@ -528,6 +542,7 @@ module.exports = {
     getTaskById,
     deleteTask,
     updateTaskMatchPrompt,
+    updateTaskGeneratePrompt,
     getPromotionItems,
     createTaskWithRelations,
     getTaskPromotionItems,

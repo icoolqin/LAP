@@ -1,4 +1,4 @@
-const { db, getTaskPromotionItems, getTaskHotPosts } = require('./dbOperations'); 
+const { db, getTaskExecutionDetails, getTaskPromotionItems, getTaskHotPosts } = require('./dbOperations'); 
 const { requestAIService } = require('./apiClient'); 
 
 // 保存AI结果到数据库
@@ -90,4 +90,112 @@ async function executeTask(taskId, userPrompt) {
   }
 }
 
-module.exports = { executeTask };
+async function saveGeneratedReplies(aiResult) {
+  try {
+    const replies = JSON.parse(aiResult);
+    const updateSql = `UPDATE task_executions 
+                       SET generated_reply = ?, generated_time = ? 
+                       WHERE id = ?`;
+
+    return new Promise((resolve, reject) => {
+      db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        Object.entries(replies).forEach(([id, reply]) => {
+          db.run(updateSql, [
+            reply.replyContent,
+            Date.now(),
+            id
+          ], (err) => {
+            if (err) {
+              db.run('ROLLBACK');
+              reject(err);
+              return;
+            }
+          });
+        });
+        db.run('COMMIT', (err) => {
+          if (err) {
+            db.run('ROLLBACK');
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Error saving generated replies:', error);
+    throw error;
+  }
+}
+
+async function generateReplies(taskId, userPrompt) {
+  try {
+    // Get task execution data
+    const taskExecutions = await getTaskExecutionDetails(taskId);
+
+    // Get all related promotion items and hot posts
+    const promotionItemIds = [...new Set(taskExecutions.map(e => e.promotion_item_id))];
+    const hotPostIds = [...new Set(taskExecutions.map(e => e.hot_post_id))];
+
+    // Fetch promotion items and hot posts
+    const promotionItems = await Promise.all(promotionItemIds.map(id => getTaskPromotionItems(taskId)));
+    const hotPosts = await Promise.all(hotPostIds.map(id => getTaskHotPosts(taskId)));
+
+    // Create mappings, filtering out any undefined results
+    const promotionItemMap = Object.fromEntries(
+      promotionItems.filter(item => item && item.length > 0)
+        .flatMap(items => items.map(item => [item.id, item]))
+    );
+    const hotPostMap = Object.fromEntries(
+      hotPosts.filter(post => post && post.length > 0)
+        .flatMap(posts => posts.map(post => [post.id, post]))
+    );
+
+    // Prepare AI request data
+    const taskData = {};
+    for (const execution of taskExecutions) {
+      const promotionItem = promotionItemMap[execution.promotion_item_id];
+      const hotPost = hotPostMap[execution.hot_post_id];
+
+      if (promotionItem && hotPost) {
+        taskData[execution.id] = {
+          promotionItems: {
+            id: promotionItem.id,
+            name: promotionItem.name,
+            description: promotionItem.description,
+            method: promotionItem.method,
+            type: promotionItem.type
+          },
+          hotPosts: {
+            id: hotPost.id,
+            title: hotPost.title,
+            sitename: hotPost.sitename
+          }
+        };
+      }
+    }
+
+    // Assemble Prompt
+    const jsonPlaceholder = "{{json}}";
+    let messageContent = userPrompt;
+    if (messageContent.includes(jsonPlaceholder)) {
+      messageContent = messageContent.replace(jsonPlaceholder, JSON.stringify(taskData));
+    } else {
+      messageContent += `\n\n${JSON.stringify(taskData)}`;
+    }
+
+    // Interact with AI
+    const aiResult = await requestAIService(messageContent);
+
+    // Save AI results
+    await saveGeneratedReplies(aiResult);
+
+    return { success: true, message: 'Replies generated successfully' };
+  } catch (error) {
+    console.error('Error generating replies:', error);
+    throw error;
+  }
+}
+
+module.exports = { executeTask,generateReplies };

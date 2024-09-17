@@ -18,6 +18,11 @@ const TaskExecution = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [stepStatus, setStepStatus] = useState(['process', 'wait', 'wait']); 
   const [isExecuting, setIsExecuting] = useState(false);
+  const [generateReplyVisible, setGenerateReplyVisible] = useState(false);
+  const [generatePrompt, setGeneratePrompt] = useState('');
+  const [generateStepStatus, setGenerateStepStatus] = useState(['wait', 'wait', 'wait']);
+  const [generateCurrentStep, setGenerateCurrentStep] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
 
 
   useEffect(() => {
@@ -36,6 +41,23 @@ const TaskExecution = () => {
       setMatchPromptVisible(true);
       setStepStatus(['wait', 'wait', 'wait']);
       setCurrentStep(0);
+    } catch (error) {
+      console.error('Error fetching task data:', error);
+      message.error('Failed to load task data');
+    }
+  };
+
+  const showGenerateReplyModal = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/tasks/${id}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const taskData = await response.json();
+      setGeneratePrompt(taskData.generate_prompt || '');
+      setGenerateReplyVisible(true);
+      setGenerateStepStatus(['wait', 'wait', 'wait']);
+      setGenerateCurrentStep(0);
     } catch (error) {
       console.error('Error fetching task data:', error);
       message.error('Failed to load task data');
@@ -126,6 +148,52 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     }
   };
 
+  const handleGenerateReplyOk = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    try {
+      setGenerateStepStatus(['process', 'wait', 'wait']);
+      setGenerateCurrentStep(0);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setGenerateStepStatus(['finish', 'process', 'wait']);
+      setGenerateCurrentStep(1);
+
+      const response = await fetch(`${BASE_URL}/tasks/${id}/generate-replies`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generatePrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate replies');
+      }
+
+      setGenerateStepStatus(['finish', 'finish', 'process']);
+      setGenerateCurrentStep(2);
+
+      const result = await response.json();
+      if (result.success) {
+        setGenerateStepStatus(['finish', 'finish', 'finish']);
+        message.success(result.message);
+        
+        await updateGeneratePrompt();
+        
+        setTimeout(() => {
+          setGenerateReplyVisible(false);
+          fetchExecutionData();
+        }, 1000);
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error) {
+      console.error('Error during reply generation:', error);
+      message.error('Reply generation failed');
+      setGenerateStepStatus(['error', 'error', 'error']);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
   const updateMatchPrompt = async () => {
     try {
       const response = await fetch(`${BASE_URL}/tasks/${id}/match-prompt`, {
@@ -143,8 +211,29 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     }
   };
   
+  const updateGeneratePrompt = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/tasks/${id}/generate-prompt`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generatePrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update generate prompt');
+      }
+    } catch (error) {
+      console.error('Error updating generate prompt:', error);
+      message.error('Failed to update generate prompt');
+    }
+  };
+
   const handleMatchPromptCancel = () => {
     setMatchPromptVisible(false);
+  };
+
+  const handleGenerateReplyCancel = () => {
+    setGenerateReplyVisible(false);
   };
 
   const fetchTaskDetails = async () => {
@@ -278,8 +367,8 @@ const makeAIRequest = async (taskData, matchPrompt) => {
           </Card>
         </Col>
         <Col span={24} style={{ marginTop: 16, textAlign: 'right' }}>
-        <Button type="primary" onClick={showMatchPromptModal} style={{ marginRight: 8 }}>进行匹配</Button>
-          <Button onClick={handleGenerateReplies} style={{ marginRight: 8 }}>生成跟帖</Button>
+          <Button type="primary" onClick={showMatchPromptModal} style={{ marginRight: 8 }}>进行匹配</Button>
+          <Button onClick={showGenerateReplyModal} style={{ marginRight: 8 }}>生成跟帖</Button>
           <Button onClick={handlePublishReplies}>发布跟帖</Button>
         </Col>
       </Row>
@@ -303,6 +392,28 @@ const makeAIRequest = async (taskData, matchPrompt) => {
           placeholder="Enter matching prompt"
           autoSize={{ minRows: 4, maxRows: 8 }}
           disabled={isExecuting}
+        />
+      </Modal>
+
+      <Modal
+        title="生成跟帖"
+        visible={generateReplyVisible}
+        onOk={handleGenerateReplyOk}
+        onCancel={handleGenerateReplyCancel}
+        width={900}
+        confirmLoading={isGenerating}
+      >
+        <Steps current={generateCurrentStep} style={{ marginBottom: 16 }}>
+          <Step title="获取任务推广标的与网罗帖子" status={generateStepStatus[0]} />
+          <Step title="拼装prompt进行AI请求" status={generateStepStatus[1]} />
+          <Step title="获取AI返回结果并存储" status={generateStepStatus[2]} />
+        </Steps>
+        <TextArea
+          value={generatePrompt}
+          onChange={(e) => setGeneratePrompt(e.target.value)}
+          placeholder="Enter generate prompt"
+          autoSize={{ minRows: 4, maxRows: 8 }}
+          disabled={isGenerating}
         />
       </Modal>
 
