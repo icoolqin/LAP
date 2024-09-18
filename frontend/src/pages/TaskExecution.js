@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip, Steps,Divider } from 'antd';
+import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip, Steps, Divider, Space } from 'antd';
+import { FormOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
+import moment from 'moment';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -193,7 +195,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
       setIsGenerating(false);
     }
   };
-  
+
   const updateMatchPrompt = async () => {
     try {
       const response = await fetch(`${BASE_URL}/tasks/${id}/match-prompt`, {
@@ -311,39 +313,100 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     }
   };
 
+  const ActionButtons = () => (
+    <Space size="small">
+      <Tooltip title="生成跟帖">
+        <Button icon={<FormOutlined />} />
+      </Tooltip>
+      <Tooltip title="发布跟帖">
+        <Button icon={<SendOutlined />} />
+      </Tooltip>
+      <Tooltip title="删除">
+        <Button icon={<DeleteOutlined />} danger />
+      </Tooltip>
+    </Space>
+  );
+
   const columns = [
-    { title: '推广标的', dataIndex: 'promotionItemName', key: 'promotionItemName' },
-    { title: '网罗帖子', dataIndex: 'hotPostTitle', key: 'hotPostTitle' },
+    { 
+      title: '推广标的', 
+      dataIndex: 'promotionItemName', 
+      key: 'promotionItemName',
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (text) => (
+        <Tooltip title={text}>
+          {truncateText(text, 20)}
+        </Tooltip>
+      ),
+    },
+    { 
+      title: '网罗帖子', 
+      dataIndex: 'hotPostTitle', 
+      key: 'hotPostTitle',
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (text) => (
+        <Tooltip title={text}>
+          {truncateText(text, 20)}
+        </Tooltip>
+      ),
+    },
     { 
       title: '帖子URL', 
       dataIndex: 'hotPostUrl', 
-      key: 'hotPostUrl', 
+      key: 'hotPostUrl',
+      ellipsis: {
+        showTitle: false,
+      },
       render: (text) => (
-        <a href={text} target="_blank" rel="noopener noreferrer">
-          {text}
-        </a>
-      ) 
+        <Tooltip title={text}>
+          <a href={text} target="_blank" rel="noopener noreferrer">
+            {truncateText(text, 30)}
+          </a>
+        </Tooltip>
+      ),
     },
-    { title: '生成跟帖', dataIndex: 'generatedReply', key: 'generatedReply' },
-    { title: '生成时间', dataIndex: 'generatedTime', key: 'generatedTime' },
+    { 
+      title: '生成跟帖', 
+      dataIndex: 'generated_reply', 
+      key: 'generated_reply',
+      ellipsis: {
+        showTitle: false,
+      },
+      render: (text) => (
+        <Tooltip title={text}>
+          {truncateText(text, 30)}
+        </Tooltip>
+      ),
+    },
+    { 
+      title: '生成时间', 
+      dataIndex: 'generated_time', 
+      key: 'generated_time',
+      render: (text) => moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss'),
+    },
     { title: '发布robot', dataIndex: 'robotName', key: 'robotName' },
-    { title: '发布时间', dataIndex: 'publishTime', key: 'publishTime' },
+    { 
+      title: '发布时间', 
+      dataIndex: 'publishTime', 
+      key: 'publishTime',
+      render: (text) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
+    },
     {
       title: '操作',
       key: 'action',
-      render: (_, record) => (
-        <span>
-          <Button onClick={() => handleGenerateReplies(record.id)} size="small" style={{ marginRight: '8px' }}>生成跟帖</Button>
-          <Button onClick={() => handlePublishReplies(record.id)} size="small" style={{ marginRight: '8px' }}>发布跟帖</Button>
-          <Button danger onClick={() => handleDelete(record.id)} size="small">删除</Button>
-        </span>
-      ),
-    },
+      fixed: 'right',
+      width: 140,
+      render: (_, record) => <ActionButtons record={record} />
+    }
   ];
 
   const truncateText = (text, length) => {
-    if (text.length <= length) return text;
-    return `${text.slice(0, length)}...`;
+    if (!text) return '';
+    return text.length > length ? `${text.slice(0, length)}...` : text;
   };
 
   return (
@@ -423,7 +486,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10 }}
-        scroll={{ x: 'max-content' }}
+        scroll={{ x: 1500 }} 
       />
     </div>
   );
