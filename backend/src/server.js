@@ -2,7 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems, requestAIService } = require('./apiClient');
 const { executeTask, generateReplies } = require('./taskExecutionService'); 
-const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
+const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution, addAccount, getAllAccounts, updateAccount, deleteAccount} = require('./dbOperations');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -306,6 +306,54 @@ app.put('/tasks/:id/generate-prompt', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update task generate prompt' });
+  }
+});
+
+// 获取所有账号
+app.get('/accounts', async (req, res) => {
+  try {
+    const accounts = await getAllAccounts();
+    res.json(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts:', error);
+    res.status(500).json({ error: 'Failed to fetch accounts' });
+  }
+});
+
+// 新增账号
+app.post('/accounts', async (req, res) => {
+  try {
+    const account = req.body;
+    const id = await addAccount(account);
+    res.json({ id });
+  } catch (error) {
+    console.error('Error adding account:', error);
+    res.status(500).json({ error: 'Failed to add account' });
+  }
+});
+
+// 更新账号
+app.put('/accounts/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedAccount = req.body;
+    await updateAccount(id, updatedAccount);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating account:', error);
+    res.status(500).json({ error: 'Failed to update account' });
+  }
+});
+
+// 删除账号
+app.delete('/accounts/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await deleteAccount(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
   }
 });
 

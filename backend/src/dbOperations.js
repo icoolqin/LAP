@@ -104,6 +104,30 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
           console.error('Error creating task_matches table', err.message);
         }
       });
+      
+      // 添加以下代码来创建 accounts 表
+      db.run(`CREATE TABLE IF NOT EXISTS accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        website_name TEXT,
+        website_domain TEXT,
+        account_status TEXT,
+        playwright_login_state TEXT,
+        login_state_update_time TEXT,
+        login_state_suggested_update_interval TEXT,
+        last_used_time TEXT,
+        account_username TEXT,
+        account_password TEXT,
+        account_bound_phone_number TEXT,
+        account_last_update_time TEXT,
+        recent_login_screenshot TEXT,
+        remarks TEXT
+      )`, (err) => {
+        if (err) {
+          console.error('Error creating accounts table', err.message);
+        }
+      });
+
+
   }
 });
 
@@ -526,6 +550,108 @@ function deleteTaskExecution(executionId) {
   });
 }
 
+// 添加账号
+function addAccount(account) {
+  return new Promise((resolve, reject) => {
+    const {
+      website_name,
+      website_domain,
+      account_status,
+      playwright_login_state,
+      login_state_update_time,
+      login_state_suggested_update_interval,
+      last_used_time,
+      account_username,
+      account_password,
+      account_bound_phone_number,
+      account_last_update_time,
+      recent_login_screenshot,
+      remarks
+    } = account;
+    const sql = `INSERT INTO accounts 
+      (website_name, website_domain, account_status, playwright_login_state, login_state_update_time, login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [website_name, website_domain, account_status, playwright_login_state, login_state_update_time,login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.lastID);
+      }
+    });
+  });
+}
+
+// 获取所有账号
+function getAllAccounts() {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM accounts ORDER BY id DESC`;
+    db.all(sql, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
+// 更新账号
+function updateAccount(id, updatedAccount) {
+  return new Promise((resolve, reject) => {
+    const {
+      website_name,
+      website_domain,
+      account_status,
+      playwright_login_state,
+      login_state_update_time,
+      login_state_suggested_update_interval,
+      last_used_time,
+      account_username,
+      account_password,
+      account_bound_phone_number,
+      account_last_update_time,
+      recent_login_screenshot,
+      remarks
+    } = updatedAccount;
+    const sql = `UPDATE accounts SET 
+      website_name = ?, 
+      website_domain = ?, 
+      account_status = ?, 
+      playwright_login_state = ?, 
+      login_state_update_time = ?, 
+      login_state_suggested_update_interval = ?,
+      last_used_time = ?, 
+      account_username = ?, 
+      account_password = ?, 
+      account_bound_phone_number = ?, 
+      account_last_update_time = ?, 
+      recent_login_screenshot = ?, 
+      remarks = ?
+      WHERE id = ?`;
+    db.run(sql, [website_name, website_domain, account_status, playwright_login_state, login_state_update_time, login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks, id], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+}
+
+// 删除账号
+function deleteAccount(id) {
+  return new Promise((resolve, reject) => {
+    const sql = `DELETE FROM accounts WHERE id = ?`;
+    db.run(sql, [id], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+}
+
 
 module.exports = {
     db,
@@ -549,5 +675,9 @@ module.exports = {
     getTaskHotPosts,
     updateTaskWithRelations,
     getTaskExecutionDetails,
-    deleteTaskExecution
+    deleteTaskExecution,
+    addAccount,
+    getAllAccounts,
+    updateAccount,
+    deleteAccount
 };
