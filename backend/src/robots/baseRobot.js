@@ -15,8 +15,7 @@ class BaseRobot {
     try {
       this.browser = await playwright.chromium.launch({ headless: true });
       this.context = await this.browser.newContext();
-      
-      // 如果有登录状态，加载它
+
       if (this.account.playwright_login_state) {
         await this.context.addCookies(JSON.parse(this.account.playwright_login_state));
       }
@@ -56,8 +55,7 @@ class BaseRobot {
         return json;
       });
 
-      const loginState = JSON.stringify({ cookies, localStorage, sessionStorage });
-      return loginState;
+      return JSON.stringify({ cookies, localStorage, sessionStorage });
     } catch (error) {
       logger.error('Error saving login state:', error);
       throw error;

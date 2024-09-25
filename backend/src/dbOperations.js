@@ -1,3 +1,4 @@
+// dbOperations.js
 const sqlite3 = require('sqlite3').verbose();
 const DB_PATH = './data/database.sqlite';
 
@@ -652,6 +653,36 @@ function deleteAccount(id) {
   });
 }
 
+function getAccountById(id) {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM accounts WHERE id = ?`;
+    db.get(sql, [id], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+async function updateAccountLoginState(id, loginState) {
+  try {
+    await db.accounts.updateOne(
+      { id: id },
+      { 
+        $set: { 
+          playwright_login_state: loginState,
+          login_state_update_time: Date.now()
+        }
+      }
+    );
+    console.log(`Updated login state for account ${id}`);
+  } catch (error) {
+    console.error('Error updating account login state:', error);
+    throw error;
+  }
+}
 
 module.exports = {
     db,
@@ -679,5 +710,7 @@ module.exports = {
     addAccount,
     getAllAccounts,
     updateAccount,
-    deleteAccount
+    deleteAccount,
+    getAccountById,
+    updateAccountLoginState
 };

@@ -1,8 +1,10 @@
+// server.js
 const cors = require('cors');
 const express = require('express');
 const { fetchAllHotItems, requestAIService } = require('./apiClient');
 const { executeTask, generateReplies } = require('./taskExecutionService'); 
-const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution, addAccount, getAllAccounts, updateAccount, deleteAccount} = require('./dbOperations');
+const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution, addAccount, getAllAccounts, updateAccount, deleteAccount, getAccountById} = require('./dbOperations');
+const { robotManager } = require('./robotManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -354,6 +356,18 @@ app.delete('/accounts/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting account:', error);
     res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
+// 新增处理更新登录状态的路由
+app.post('/accounts/:id/update-login-state', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const loginState = await robotManager.updateLoginState(id);
+    res.json({ success: true, message: 'Login state updated successfully' });
+  } catch (error) {
+    console.error('Error updating login state:', error);
+    res.status(500).json({ success: false, error: 'Failed to update login state' });
   }
 });
 

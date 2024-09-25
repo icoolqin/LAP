@@ -1,19 +1,20 @@
 // AccountPoolManagement.js
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Popconfirm, Tooltip, Space } from 'antd';
+import { Table, Button, Modal, Form, Input, message, Popconfirm, Tooltip, Space, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
 import moment from 'moment';
 
-const { Option } = Select;
-
-const BASE_URL = 'http://localhost:3000'; // 根据您的后端地址调整
+const BASE_URL = 'http://localhost:3000';
 
 const AccountPoolManagement = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [addEditModalVisible, setAddEditModalVisible] = useState(false);
+  const [qrCodeModalVisible, setQrCodeModalVisible] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(null);
   const [form] = Form.useForm();
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [qrCodeLoading, setQrCodeLoading] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -36,13 +37,13 @@ const AccountPoolManagement = () => {
   const handleAdd = () => {
     setCurrentAccount(null);
     form.resetFields();
-    setModalVisible(true);
+    setAddEditModalVisible(true);
   };
 
   const handleEdit = (record) => {
     setCurrentAccount(record);
     form.setFieldsValue(record);
-    setModalVisible(true);
+    setAddEditModalVisible(true);
   };
 
   const handleDelete = async (id) => {
@@ -57,15 +58,28 @@ const AccountPoolManagement = () => {
   };
 
   const handleUpdateLoginState = async (id) => {
-    // 更新playwright登录状态的逻辑将在未来实现
-    message.info(`更新登录状态功能尚未实现，账号ID：${id}`);
+    setQrCodeModalVisible(true);
+    setQrCodeUrl(null);
+    setQrCodeLoading(true);
+    message.info(`正在获取网站登录二维码，账号ID：${id}`);
+    
+    try {
+      const response = await fetch(`${BASE_URL}/accounts/${id}/update-login-state`, { method: 'POST' });
+      const data = await response.json();
+      setQrCodeUrl(data.qrCodeUrl);
+      message.success('二维码已获取，请扫码登录');
+    } catch (error) {
+      console.error('Error updating login state:', error);
+      message.error('获取二维码失败');
+    } finally {
+      setQrCodeLoading(false);
+    }
   };
 
-  const handleModalOk = async () => {
+  const handleAddEditModalOk = async () => {
     try {
       const values = await form.validateFields();
       if (currentAccount) {
-        // 更新账号
         await fetch(`${BASE_URL}/accounts/${currentAccount.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -73,7 +87,6 @@ const AccountPoolManagement = () => {
         });
         message.success('Account updated successfully');
       } else {
-        // 新增账号
         await fetch(`${BASE_URL}/accounts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -81,7 +94,7 @@ const AccountPoolManagement = () => {
         });
         message.success('Account added successfully');
       }
-      setModalVisible(false);
+      setAddEditModalVisible(false);
       fetchAccounts();
     } catch (error) {
       console.error('Error saving account:', error);
@@ -89,7 +102,6 @@ const AccountPoolManagement = () => {
     }
   };
 
-  // 截断文本的函数
   const truncateText = (text, length = 15) => {
     if (!text) return '';
     return text.length > length ? `${text.slice(0, length)}...` : text;
@@ -218,58 +230,52 @@ const AccountPoolManagement = () => {
       ),
     },
     {
-      title: '操作',
-      key: 'action',
-      fixed: 'right', // 将操作列固定在最右侧
-      width: 150,
-      render: (_, record) => (
-        <Space size="small">
-          <Tooltip title="编辑账号">
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="更新登录状态">
-            <Button
-              icon={<SyncOutlined />}
-              onClick={() => handleUpdateLoginState(record.id)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="确认删除此账号吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="是"
-            cancelText="否"
-          >
-            <Tooltip title="删除">
-              <Button icon={<DeleteOutlined />} danger />
+        title: '操作',
+        key: 'action',
+        fixed: 'right',
+        width: 150,
+        render: (_, record) => (
+          <Space size="small">
+            <Tooltip title="编辑账号">
+              <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
             </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+            <Tooltip title="更新登录状态">
+              <Button icon={<SyncOutlined />} onClick={() => handleUpdateLoginState(record.id)} />
+            </Tooltip>
+            <Popconfirm
+              title="确认删除此账号吗？"
+              onConfirm={() => handleDelete(record.id)}
+              okText="是"
+              cancelText="否"
+            >
+              <Tooltip title="删除">
+                <Button icon={<DeleteOutlined />} danger />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ];
 
   return (
-    <div>
-      <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} style={{ marginBottom: 16 }}>
+        <div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} style={{ marginBottom: 16 }}>
         新增账号
-      </Button>
-      <Table
+        </Button>
+        <Table
         columns={columns}
         dataSource={accounts}
         rowKey="id"
         loading={loading}
-        scroll={{ x: 1500 }} // 当表格列很多时，允许水平滚动
-      />
-      <Modal
+        scroll={{ x: 1500 }}
+        />
+        <Modal
         title={currentAccount ? '编辑账号' : '新增账号'}
-        visible={modalVisible}
-        onOk={handleModalOk}
-        onCancel={() => setModalVisible(false)}
+        visible={addEditModalVisible}
+        onOk={handleAddEditModalOk}
+        onCancel={() => setAddEditModalVisible(false)}
         width={600}
-      >
+        >
         <Form form={form} layout="vertical">
           <Form.Item
             name="website_name"
@@ -312,6 +318,23 @@ const AccountPoolManagement = () => {
             <Input.TextArea placeholder="请输入备注" />
           </Form.Item>
         </Form>
+      </Modal>
+      <Modal
+        title="二维码登录"
+        visible={qrCodeModalVisible}
+        onOk={() => setQrCodeModalVisible(false)}
+        onCancel={() => setQrCodeModalVisible(false)}
+        footer={null}
+      >
+        {qrCodeLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <Spin tip="正在获取二维码，请稍候..." />
+          </div>
+        ) : qrCodeUrl ? (
+          <img src={qrCodeUrl} alt="QR Code" style={{ width: '100%' }} />
+        ) : (
+          <p>无法获取二维码，请重试。</p>
+        )}
       </Modal>
     </div>
   );

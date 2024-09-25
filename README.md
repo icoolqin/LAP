@@ -32,11 +32,6 @@ Copybackend/
   └── src/
       └── taskExecutionService.js
 
-在 backend/src 目录下创建一个 scheduler.js 文件，用于任务调度：
-
-Copybackend/
-  └── src/
-      └── scheduler.js
 
 在 backend/src 目录下创建一个 logger.js 文件，用于统一的日志记录：
 
@@ -61,12 +56,6 @@ baseRobot.js: 定义一个基础机器人类，包含共同的方法如登录、
 
 整合机器人管理器。
 处理任务执行的逻辑，包括获取待发帖的内容、选择合适的机器人、执行发帖操作等。
-
-
-调度器 (scheduler.js):
-
-负责任务的调度，可以使用类似 node-cron 的库来实现定时任务。
-与任务执行服务协作，定期触发自动回帖任务。
 
 
 日志记录器 (logger.js):
@@ -94,17 +83,58 @@ baseRobot.js: 定义一个基础机器人类，包含共同的方法如登录、
 在 frontend/src/pages 中添加新的页面组件，用于管理和监控自动回帖任务。
 更新 TaskExecution.js 或添加新组件来展示自动回帖的状态和结果。
 
-backend/
-  └── src/
-      ├── robots/
-      │   ├── baseRobot.js
-      │   ├── siteARobot.js
-      │   ├── siteBRobot.js
-      │   └── ...
-      ├── robotManager.js
-      ├── taskExecutionService.js
-      ├── scheduler.js
-      └── logger.js
+项目结构：
+ backend
+│   ├── data
+│   │   └── database.sqlite
+│   ├── package-lock.json
+│   ├── package.json
+│   └── src
+│       ├── apiClient.js
+│       ├── dbOperations.js
+│       ├── logger.js
+│       ├── robotManager.js
+│       ├── robots
+│       │   ├── baseRobot.js
+│       │   └── zhihuRobot.js
+│       ├── server.js
+│       └── taskExecutionService.js
+├── config
+├── data
+├── frontend
+│   ├── README.md
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   ├── favicon.ico
+│   │   ├── index.html
+│   │   ├── logo192.png
+│   │   ├── logo512.png
+│   │   ├── manifest.json
+│   │   └── robots.txt
+│   └── src
+│       ├── App.css
+│       ├── App.js
+│       ├── App.test.js
+│       ├── BasicLayout.js
+│       ├── index.css
+│       ├── index.js
+│       ├── logo.svg
+│       ├── pages
+│       │   ├── AccountPoolManagement.js
+│       │   ├── Dashboard.js
+│       │   ├── HotPosts.js
+│       │   ├── PromotionItems.js
+│       │   ├── TaskExecution.js
+│       │   └── TaskManagement.js
+│       ├── reportWebVitals.js
+│       └── setupTests.js
+├── logs
+├── package-lock.json
+├── package.json
+├── scripts
+└── shared
+
 
 如果是公用函数请放在baseRobot.js里
 注意不同的账号使用不同的浏览器上下文
@@ -112,12 +142,14 @@ backend/
 账号池字段：网站名称、网站域名、账号状态（正常、暂停、失效）、playwright登录状态保存（无，有效、失效）、登录状态更新时间、距离上次更新时间、登录状态建议更新周期、最近一次使用时间、账号用户名、账号密码、账号最近更新时间、最近一次登录网页截图（用于登录时扫码）、备注。
 操作（编辑账号、更新playwright登录状态、删除）
 
+上面是项目背景：
+
 我有个项目需要你帮忙把功能写出来，先跟你说下项目背景：
 正在开发一个自动发帖机器人，各网站的账号池已经开发好了，前端如“AccountPoolManagement.js”，账号池有的字段在“AccountPoolManagement.js”代码里也能看到。后端有“robots/baseRobot.js”，功能是各网站发帖机器人的基础共享函数都在这，然后“robots/zhihuRobot.js”就是给知乎网站发帖的机器人。还有个“robotManager.js”服务端代码是用来管理机器人的，就是发帖机器人给三方调用的一个入口功能。接下来我会把上面提到的功能相关代码都给你看看，请仔细阅读，清楚明白已有的功能。
 现在需求是，想把"zhihu.com"域名下的发帖机器人的网站登录功能做好，即用户在“AccountPoolManagement.js”的列表上点击“更新登录状态”按钮后，会弹出一个模态框，模态框里显示“正在获取网站登录二维码”同时有个“处理中”的动效，同时将这条记录的"网站域名”字段传给后台，后台根据域名匹配对应的网站机器人去走登录流程，将登录二维码获取到后显示在模态框里（登录二维码获取就是[zhihu.com](https://www.zhihu.com/signin?)的登录页面截图），当用户扫码登录后，后端机器人感知到登录成功，将playwright的登录状态保存到账号池这条记录里，存到“Playwright登录状态保存”字段下，同时前端这个字段显示成“已获取”，（即后端只要拿到这个字段下有值，给前端就返“已获取”，而不是保存的JSON）。然后模态框关闭。
 附件里就是项目相关代码，关于发帖机器人的部分如，“robots/baseRobot.js”、“robots/zhihuRobot.js”、“robotManager.js”只是写了个大概，而且可能部分代码还写错了，请纠正它，完善一下。
-请一步步思考，将你的思路整理出来，然后开始写这个功能的代码，感谢。
-https://chatgpt.com/c/66f2db58-0b5c-8006-9411-9dd16f39297b
+请一步步思考，将你的思路整理出来，然后开始写这个功能的代码，感谢。如果功能设计上有啥可以改进的你也可以指出来。
+我现在把项目结构及关键代码给到你。请循序最佳开发实践来出代码，并且注意不要把已有功能弄坏了，除了机器人这部分，因为这是新做的。
 
 
 # TODO List：
@@ -193,6 +225,9 @@ tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔�
 11,
 【账号】byi493032@hotmail.com
 【密码】Store.sorryios.com630
+12,
+【账号】wdach703251@outlook.com
+【密码】Store.sorryios.com523
 
 ### 关于接口：
 
