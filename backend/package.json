@@ -16,7 +16,8 @@
     "express": "^4.19.2",
     "mongoose": "^8.5.3",
     "playwright": "^1.46.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+     "cors": "^2.8.5"
   },
   "devDependencies": {
     "jest": "^29.7.0",
