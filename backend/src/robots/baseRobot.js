@@ -37,30 +37,17 @@ class BaseRobot {
 
   async saveLoginState() {
     try {
-      const cookies = await this.context.cookies();
-      const localStorage = await this.page.evaluate(() => {
-        let json = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          json[key] = localStorage.getItem(key);
-        }
-        return json;
-      });
-      const sessionStorage = await this.page.evaluate(() => {
-        let json = {};
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          json[key] = sessionStorage.getItem(key);
-        }
-        return json;
-      });
-
-      return JSON.stringify({ cookies, localStorage, sessionStorage });
+      // 获取上下文的存储状态
+      const storageState = await this.context.storageState();
+      
+      // 返回 JSON 字符串形式的存储状态
+      return JSON.stringify(storageState);
     } catch (error) {
       logger.error('Error saving login state:', error);
       throw error;
     }
   }
+  
 
   async close() {
     if (this.browser) {

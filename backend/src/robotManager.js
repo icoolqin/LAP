@@ -14,10 +14,10 @@ class RobotManager {
   }
 
   // 根据网站和账号获取相应的机器人实例
-  getRobot(siteName, account) {
-    const RobotClass = robotsMap[siteName];
+  getRobot(siteDomain, account) {
+    const RobotClass = robotsMap[siteDomain];
     if (!RobotClass) {
-      throw new Error(`No robot found for site: ${siteName}`);
+      throw new Error(`No robot found for site: ${siteDomain}`);
     }
     
     // 检查机器人是否已经存在
