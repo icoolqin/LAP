@@ -1,5 +1,5 @@
 // logger.js,实现日志记录功能
-const { createLogger, format, transports } = require('winston');
+import { createLogger, format, transports } from 'winston';
 
 const logger = createLogger({
   level: 'info',

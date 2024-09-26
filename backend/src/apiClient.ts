@@ -1,11 +1,38 @@
-const axios = require('axios');
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 // Lucky Cola API configuration
 const LUCKY_COLA_API_BASE_URL = 'https://luckycola.com.cn/tools';
 const COLA_KEY = 'NYFW61adtakDeM17239768653657p55cd4nIx'; // 请替换为您的实际 ColaKey
 
+// Interfaces
+interface AIServiceConfig {
+  name: string;
+  url: string;
+  key: string | null;
+}
+
+interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+interface AIServiceResponse {
+  choices: Array<{
+    message?: {
+      content: string;
+    };
+  }>;
+}
+
+interface LuckyColaResponse {
+  code: number;
+  data: {
+    items: Array<unknown>; // 可以根据实际返回的数据结构进一步定义
+  };
+}
+
 // AI Service configurations
-const AI_SERVICES = [
+const AI_SERVICES: AIServiceConfig[] = [
   {
     name: 'Default AI',
     url: 'http://localhost:8766/v1/chat/completions',
@@ -20,7 +47,7 @@ const AI_SERVICES = [
 ];
 
 // Lucky Cola API client
-const luckyColaApiClient = axios.create({
+const luckyColaApiClient: AxiosInstance = axios.create({
   baseURL: LUCKY_COLA_API_BASE_URL,
   headers: {
     'Authorization': COLA_KEY
@@ -28,7 +55,7 @@ const luckyColaApiClient = axios.create({
 });
 
 // AI Service client factory
-function createAIServiceClient(serviceConfig) {
+function createAIServiceClient(serviceConfig: AIServiceConfig): AxiosInstance {
   return axios.create({
     baseURL: serviceConfig.url,
     headers: {
@@ -39,7 +66,7 @@ function createAIServiceClient(serviceConfig) {
 }
 
 // AI Service request function
-async function requestAIService(messageContent, serviceName = 'Default AI') {
+async function requestAIService(messageContent: string, serviceName: string = 'Default AI'): Promise<string> {
   const serviceConfig = AI_SERVICES.find(service => service.name === serviceName);
   if (!serviceConfig) {
     throw new Error(`AI service "${serviceName}" not found`);
@@ -48,7 +75,7 @@ async function requestAIService(messageContent, serviceName = 'Default AI') {
   const aiClient = createAIServiceClient(serviceConfig);
 
   try {
-    const response = await aiClient.post('', {
+    const response: AxiosResponse<AIServiceResponse> = await aiClient.post('', {
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: messageContent }
@@ -56,21 +83,30 @@ async function requestAIService(messageContent, serviceName = 'Default AI') {
     });
 
     if (response.status === 200) {
-      return response.data.choices[0]?.message?.content;
+      const content = response.data.choices[0]?.message?.content;
+      if (content) {
+        return content;
+      } else {
+        throw new Error('No content in AI response');
+      }
     } else {
       throw new Error(`Unexpected response status: ${response.status}`);
     }
   } catch (error) {
-    console.error(`Error requesting AI service (${serviceName}):`, error.message);
+    if (error instanceof Error) {
+      console.error(`Error requesting AI service (${serviceName}):`, error.message);
+    } else {
+      console.error(`Unknown error occurred while requesting AI service (${serviceName})`);
+    }
     throw error;
   }
 }
 
 // Lucky Cola API functions
-async function fetchAllHotItems() {
+async function fetchAllHotItems(): Promise<unknown[]> {
   try {
     console.log(`Fetching trending topics...`);
-    const response = await luckyColaApiClient.get('/newsHot', {
+    const response: AxiosResponse<LuckyColaResponse> = await luckyColaApiClient.get('/newsHot', {
       params: { ColaKey: COLA_KEY }
     });
     
@@ -83,13 +119,17 @@ async function fetchAllHotItems() {
       return [];
     }
   } catch (error) {
-    console.error('Error fetching trending topics:', error.message);
-    if (error.response) {
-      console.error('Response data:', error.response.data);
-      console.error('Response status:', error.response.status);
+    if (axios.isAxiosError(error)) {
+      console.error('Error fetching trending topics:', error.message);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+    } else {
+      console.error('An unexpected error occurred:', error);
     }
     return [];
   }
 }
 
-module.exports = { fetchAllHotItems, requestAIService };
+export { fetchAllHotItems, requestAIService };

@@ -1,15 +1,18 @@
-// robots/zhihuRobot.js
-const BaseRobot = require('./baseRobot');
-const logger = require('../logger');
+import BaseRobot from './baseRobot';
+import logger from '../logger';
 
 class ZhihuRobot extends BaseRobot {
-  constructor(account) {
+  constructor(account: Account) {
     super(account);
   }
 
-  async login() {
+  async login(): Promise<string> {
     await this.init();
     try {
+      if (!this.page) {
+        throw new Error('Page is not initialized');
+      }
+
       await this.page.goto('https://www.zhihu.com/signin', { waitUntil: 'networkidle' });
       
       await this.page.fill('input[name="username"]', this.account.account_username);
@@ -33,8 +36,12 @@ class ZhihuRobot extends BaseRobot {
     }
   }
 
-  async post(content) {
+  async post(content: string): Promise<boolean> {
     try {
+      if (!this.page) {
+        throw new Error('Page is not initialized');
+      }
+
       await this.page.goto('https://www.zhihu.com/question/your-question-id/answer/new', { waitUntil: 'networkidle' });
       await this.page.fill('textarea[name="content"]', content);
       
@@ -57,4 +64,4 @@ class ZhihuRobot extends BaseRobot {
   }
 }
 
-module.exports = ZhihuRobot;
+export default ZhihuRobot;
