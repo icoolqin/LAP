@@ -7,6 +7,7 @@ import HotPosts from './pages/HotPosts';
 import PromotionItems from './pages/PromotionItems'; 
 import TaskManagement from './pages/TaskManagement'; 
 import TaskExecution from './pages/TaskExecution'; 
+import AccountPoolManagement from './pages/AccountPoolManagement';
 
 const BasicLayout = () => {
   const location = useLocation();
@@ -60,6 +61,18 @@ const BasicLayout = () => {
         },
       ],
     },
+    {
+      path: '/armory',
+      name: '兵戈甲库',
+      icon: <SmileOutlined />,
+      routes: [
+        {
+          path: '/armory/account-pool',
+          name: '账号池管理',
+          component: AccountPoolManagement,
+        },
+      ],
+    },
   ];
 
   const routeMap = {
@@ -72,6 +85,8 @@ const BasicLayout = () => {
     '/conquer-world': '驰骋江山',
     '/conquer-world/task-management': '推广任务管理',
     '/conquer-world/task-execution': '执行任务', 
+    '/armory': '兵戈甲库',
+    '/armory/account-pool': '账号池管理',
   };
 
   const getPageTitle = (pathname) => {
@@ -127,6 +142,7 @@ const BasicLayout = () => {
           <Route path="/announcement/promotion-items" element={<PromotionItems />} />
           <Route path="/conquer-world/task-management" element={<TaskManagement />} />
           <Route path="/conquer-world/task-execution/:id" element={<TaskExecution />} />
+          <Route path="/armory/account-pool" element={<AccountPoolManagement />} />
         </Routes>
       </PageContainer>
     </ProLayout>

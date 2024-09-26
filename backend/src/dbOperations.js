@@ -1,3 +1,4 @@
+// dbOperations.js
 const sqlite3 = require('sqlite3').verbose();
 const DB_PATH = './data/database.sqlite';
 
@@ -53,7 +54,8 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
         post_count INTEGER,
         match_count INTEGER,
         stage TEXT,
-        match_prompt TEXT
+        match_prompt TEXT,
+        generate_prompt TEXT
     )`, (err) => {
         if (err) {
         console.error('Error creating tasks table', err.message);
@@ -61,48 +63,72 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
     });
 
     // 创建 task_promotion_items 表
-db.run(`CREATE TABLE IF NOT EXISTS task_promotion_items (
-    task_id INTEGER,
-    promotion_item_id INTEGER,
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id)
-  )`, (err) => {
-    if (err) {
-      console.error('Error creating task_promotion_items table', err.message);
-    }
-  });
+    db.run(`CREATE TABLE IF NOT EXISTS task_promotion_items (
+        task_id INTEGER,
+        promotion_item_id INTEGER,
+        FOREIGN KEY (task_id) REFERENCES tasks(id),
+        FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id)
+      )`, (err) => {
+        if (err) {
+          console.error('Error creating task_promotion_items table', err.message);
+        }
+      });
   
-  // 创建 task_hot_posts 表
-  db.run(`CREATE TABLE IF NOT EXISTS task_hot_posts (
-    task_id INTEGER,
-    hot_post_id TEXT,
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
-  )`, (err) => {
-    if (err) {
-      console.error('Error creating task_hot_posts table', err.message);
-    }
-  });
+      // 创建 task_hot_posts 表
+      db.run(`CREATE TABLE IF NOT EXISTS task_hot_posts (
+        task_id INTEGER,
+        hot_post_id TEXT,
+        FOREIGN KEY (task_id) REFERENCES tasks(id),
+        FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
+      )`, (err) => {
+        if (err) {
+          console.error('Error creating task_hot_posts table', err.message);
+        }
+      });
   
-  // 创建task_executions表
-  db.run(`CREATE TABLE IF NOT EXISTS task_executions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER,
-    promotion_item_id INTEGER,
-    hot_post_id TEXT,
-    generated_reply TEXT,
-    generated_time TEXT,
-    robot_id INTEGER,
-    publish_time TEXT,
-    status TEXT,
-    FOREIGN KEY (task_id) REFERENCES tasks(id),
-    FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id),
-    FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
-  )`, (err) => {
-    if (err) {
-      console.error('Error creating task_matches table', err.message);
-    }
-  });
+      // 创建task_executions表
+      db.run(`CREATE TABLE IF NOT EXISTS task_executions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER,
+        promotion_item_id INTEGER,
+        hot_post_id TEXT,
+        generated_reply TEXT,
+        generated_time TEXT,
+        robot_id INTEGER,
+        publish_time TEXT,
+        status TEXT,
+        FOREIGN KEY (task_id) REFERENCES tasks(id),
+        FOREIGN KEY (promotion_item_id) REFERENCES promotion_items(id),
+        FOREIGN KEY (hot_post_id) REFERENCES trending_topics(id)
+      )`, (err) => {
+        if (err) {
+          console.error('Error creating task_matches table', err.message);
+        }
+      });
+      
+      // 添加以下代码来创建 accounts 表
+      db.run(`CREATE TABLE IF NOT EXISTS accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        website_name TEXT,
+        website_domain TEXT,
+        account_status TEXT,
+        playwright_login_state TEXT,
+        login_state_update_time TEXT,
+        login_state_suggested_update_interval TEXT,
+        last_used_time TEXT,
+        account_username TEXT,
+        account_password TEXT,
+        account_bound_phone_number TEXT,
+        account_last_update_time TEXT,
+        recent_login_screenshot TEXT,
+        remarks TEXT
+      )`, (err) => {
+        if (err) {
+          console.error('Error creating accounts table', err.message);
+        }
+      });
+
+
   }
 });
 
@@ -351,6 +377,19 @@ function updateTaskMatchPrompt(id, matchPrompt) {
   });
 }
 
+function updateTaskGeneratePrompt(taskId, generatePrompt) {
+  return new Promise((resolve, reject) => {
+    const sql = 'UPDATE tasks SET generate_prompt = ? WHERE id = ?';
+    db.run(sql, [generatePrompt, taskId], (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 function createTaskWithRelations(taskData, promotionItems, hotPosts) {
     return new Promise((resolve, reject) => {
       db.serialize(() => {
@@ -405,7 +444,7 @@ function createTaskWithRelations(taskData, promotionItems, hotPosts) {
         if (err) {
           reject(err);
         } else {
-          resolve(rows);
+          resolve(rows || []);
         }
       });
     });
@@ -423,7 +462,7 @@ function createTaskWithRelations(taskData, promotionItems, hotPosts) {
         if (err) {
           reject(err);
         } else {
-          resolve(rows);
+          resolve(rows || []);
         }
       });
     });
@@ -481,15 +520,15 @@ function getTaskExecutionDetails(taskId) {
     const sql = `
       SELECT te.id, te.task_id, te.promotion_item_id, te.hot_post_id, te.generated_reply, te.generated_time, 
              te.robot_id, te.publish_time, te.status, pi.name AS promotionItemName, 
-             tt.title AS hotPostTitle, tt.url AS hotPostUrl, r.name AS robotName
+             tt.title AS hotPostTitle, tt.url AS hotPostUrl
       FROM task_executions te
       LEFT JOIN promotion_items pi ON te.promotion_item_id = pi.id
       LEFT JOIN trending_topics tt ON te.hot_post_id = tt.id
-      LEFT JOIN robots r ON te.robot_id = r.id
       WHERE te.task_id = ?`;
     
     db.all(sql, [taskId], (err, rows) => {
       if (err) {
+        console.error('Error in getTaskExecutionDetails:', err);
         reject(err);
       } else {
         resolve(rows);
@@ -512,6 +551,138 @@ function deleteTaskExecution(executionId) {
   });
 }
 
+// 添加账号
+function addAccount(account) {
+  return new Promise((resolve, reject) => {
+    const {
+      website_name,
+      website_domain,
+      account_status,
+      playwright_login_state,
+      login_state_update_time,
+      login_state_suggested_update_interval,
+      last_used_time,
+      account_username,
+      account_password,
+      account_bound_phone_number,
+      account_last_update_time,
+      recent_login_screenshot,
+      remarks
+    } = account;
+    const sql = `INSERT INTO accounts 
+      (website_name, website_domain, account_status, playwright_login_state, login_state_update_time, login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    db.run(sql, [website_name, website_domain, account_status, playwright_login_state, login_state_update_time,login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.lastID);
+      }
+    });
+  });
+}
+
+// 获取所有账号
+function getAllAccounts() {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM accounts ORDER BY id DESC`;
+    db.all(sql, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+}
+
+// 更新账号
+function updateAccount(id, updatedAccount) {
+  return new Promise((resolve, reject) => {
+    const {
+      website_name,
+      website_domain,
+      account_status,
+      playwright_login_state,
+      login_state_update_time,
+      login_state_suggested_update_interval,
+      last_used_time,
+      account_username,
+      account_password,
+      account_bound_phone_number,
+      account_last_update_time,
+      recent_login_screenshot,
+      remarks
+    } = updatedAccount;
+    const sql = `UPDATE accounts SET 
+      website_name = ?, 
+      website_domain = ?, 
+      account_status = ?, 
+      playwright_login_state = ?, 
+      login_state_update_time = ?, 
+      login_state_suggested_update_interval = ?,
+      last_used_time = ?, 
+      account_username = ?, 
+      account_password = ?, 
+      account_bound_phone_number = ?, 
+      account_last_update_time = ?, 
+      recent_login_screenshot = ?, 
+      remarks = ?
+      WHERE id = ?`;
+    db.run(sql, [website_name, website_domain, account_status, playwright_login_state, login_state_update_time, login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks, id], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+}
+
+// 删除账号
+function deleteAccount(id) {
+  return new Promise((resolve, reject) => {
+    const sql = `DELETE FROM accounts WHERE id = ?`;
+    db.run(sql, [id], function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(this.changes);
+      }
+    });
+  });
+}
+
+function getAccountById(id) {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM accounts WHERE id = ?`;
+    db.get(sql, [id], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+async function updateAccountLoginState(id, loginState) {
+  try {
+    await db.accounts.updateOne(
+      { id: id },
+      { 
+        $set: { 
+          playwright_login_state: loginState,
+          login_state_update_time: Date.now()
+        }
+      }
+    );
+    console.log(`Updated login state for account ${id}`);
+  } catch (error) {
+    console.error('Error updating account login state:', error);
+    throw error;
+  }
+}
 
 module.exports = {
     db,
@@ -528,11 +699,18 @@ module.exports = {
     getTaskById,
     deleteTask,
     updateTaskMatchPrompt,
+    updateTaskGeneratePrompt,
     getPromotionItems,
     createTaskWithRelations,
     getTaskPromotionItems,
     getTaskHotPosts,
     updateTaskWithRelations,
     getTaskExecutionDetails,
-    deleteTaskExecution
+    deleteTaskExecution,
+    addAccount,
+    getAllAccounts,
+    updateAccount,
+    deleteAccount,
+    getAccountById,
+    updateAccountLoginState
 };

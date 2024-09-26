@@ -1,9 +1,10 @@
+// server.js
 const cors = require('cors');
 const express = require('express');
-const { fetchAllHotItems } = require('./apiClient');
-const { saveHotItems, getHotItems, getHotPosts } = require('./dbOperations');
-const { getTaskData } = require('./taskExecutionService'); 
-const { addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution } = require('./dbOperations');
+const { fetchAllHotItems, requestAIService } = require('./apiClient');
+const { executeTask, generateReplies } = require('./taskExecutionService'); 
+const { saveHotItems, getHotItems, getHotPosts, addPromotionItem, getAllPromotionItems, updatePromotionItem, deletePromotionItem, getTaskById, updateTaskMatchPrompt, updateTaskGeneratePrompt, togglePromotionItemStatus, getPromotionItems, createTaskWithRelations, getAllTasks, deleteTask, getTaskPromotionItems, getTaskHotPosts, updateTaskWithRelations, getTaskExecutionDetails, deleteTaskExecution, addAccount, getAllAccounts, updateAccount, deleteAccount, getAccountById} = require('./dbOperations');
+const { robotManager } = require('./robotManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -271,15 +272,102 @@ app.delete('/task-executions/:id', async (req, res) => {
   }
 });
 
-// 新的API端点：获取任务相关数据
-app.post('/tasks/:id/fetch-data', async (req, res) => {
+// 处理执行任务的API端点
+app.post('/tasks/:id/execute', async (req, res) => {
   const taskId = req.params.id;
+  const { matchPrompt } = req.body;  // 从请求体获取用户输入的Prompt
+
   try {
-    const data = await getTaskData(taskId); 
-    res.json(data);
+    const result = await executeTask(taskId, matchPrompt);
+    res.status(200).json(result);
   } catch (error) {
-    console.error('Error fetching task data:', error);
-    res.status(500).json({ error: 'Failed to fetch task data' });
+    console.error('Error executing task:', error);
+    res.status(500).json({ error: 'Failed to execute task' });
+  }
+});
+
+app.post('/tasks/:id/generate-replies', async (req, res) => {
+  const taskId = req.params.id;
+  const { generatePrompt } = req.body;
+
+  try {
+    const result = await generateReplies(taskId, generatePrompt);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error generating replies:', error);
+    res.status(500).json({ error: 'Failed to generate replies' });
+  }
+});
+
+// Add this new endpoint to update the generate prompt
+app.put('/tasks/:id/generate-prompt', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const { generatePrompt } = req.body;
+    await updateTaskGeneratePrompt(taskId, generatePrompt);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update task generate prompt' });
+  }
+});
+
+// 获取所有账号
+app.get('/accounts', async (req, res) => {
+  try {
+    const accounts = await getAllAccounts();
+    res.json(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts:', error);
+    res.status(500).json({ error: 'Failed to fetch accounts' });
+  }
+});
+
+// 新增账号
+app.post('/accounts', async (req, res) => {
+  try {
+    const account = req.body;
+    const id = await addAccount(account);
+    res.json({ id });
+  } catch (error) {
+    console.error('Error adding account:', error);
+    res.status(500).json({ error: 'Failed to add account' });
+  }
+});
+
+// 更新账号
+app.put('/accounts/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedAccount = req.body;
+    await updateAccount(id, updatedAccount);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating account:', error);
+    res.status(500).json({ error: 'Failed to update account' });
+  }
+});
+
+// 删除账号
+app.delete('/accounts/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    await deleteAccount(id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
+// 新增处理更新登录状态的路由
+app.post('/accounts/:id/update-login-state', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const loginState = await robotManager.updateLoginState(id);
+    res.json({ success: true, message: 'Login state updated successfully' });
+  } catch (error) {
+    console.error('Error updating login state:', error);
+    res.status(500).json({ success: false, error: 'Failed to update login state' });
   }
 });
 
