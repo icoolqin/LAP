@@ -39,7 +39,9 @@ abstract class BaseRobot {
     }
   }
 
-  abstract login(): Promise<string>;
+  abstract startLoginProcess(): Promise<string>; // Returns QR code image data
+
+  abstract waitForLoginSuccess(): Promise<void>;
 
   abstract post(content: string): Promise<boolean>;
 

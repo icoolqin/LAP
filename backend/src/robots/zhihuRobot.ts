@@ -7,7 +7,7 @@ class ZhihuRobot extends BaseRobot {
     super(account);
   }
 
-  async login(): Promise<string> {
+  async startLoginProcess(): Promise<string> {
     await this.init();
     try {
       if (!this.page) {
@@ -16,58 +16,50 @@ class ZhihuRobot extends BaseRobot {
 
       await this.page.goto('https://www.zhihu.com/signin', { waitUntil: 'networkidle' });
 
-      await this.page.fill('input[name="username"]', this.account.account_username);
-      await this.page.fill('input[name="password"]', this.account.account_password);
+      // Click on the QR code login tab
+      await this.page.click('.SignFlow-qrcodeTab');
 
-      await Promise.all([
-        this.page.click('button[type="submit"]'),
-        this.page.waitForNavigation({ waitUntil: 'networkidle' }),
-      ]);
+      // Wait for the QR code image to be visible
+      await this.page.waitForSelector('.SignFlow-qrcode img', { timeout: 10000 });
 
-      const loggedIn = await this.page.evaluate(
-        () => !!document.querySelector('a[href="/notifications"]')
-      );
-      if (loggedIn) {
-        logger.info(`Successfully logged in to Zhihu account: ${this.account.account_username}`);
-        return await this.saveLoginState();
-      } else {
-        throw new Error('Failed to log in to Zhihu');
+      // Get the QR code image element
+      const qrCodeElement = await this.page.$('.SignFlow-qrcode img');
+      if (!qrCodeElement) {
+        throw new Error('QR code element not found');
       }
+
+      // Take a screenshot of the QR code element
+      const qrCodeBuffer = await qrCodeElement.screenshot();
+
+      // Convert buffer to base64 string
+      const qrCodeBase64 = qrCodeBuffer.toString('base64');
+
+      // Return the base64 string
+      return qrCodeBase64;
     } catch (error: any) {
-      logger.error('Error during Zhihu login:', error);
+      logger.error('Error during Zhihu login process:', error);
       throw error;
     }
   }
 
-  async post(content: string): Promise<boolean> {
+  async waitForLoginSuccess(): Promise<void> {
     try {
       if (!this.page) {
         throw new Error('Page is not initialized');
       }
 
-      await this.page.goto('https://www.zhihu.com/question/your-question-id/answer/new', {
-        waitUntil: 'networkidle',
-      });
-      await this.page.fill('textarea[name="content"]', content);
-
-      await Promise.all([
-        this.page.click('button[type="submit"]'),
-        this.page.waitForNavigation({ waitUntil: 'networkidle' }),
-      ]);
-
-      const success = await this.page.evaluate(
-        () => !!document.querySelector('.some-success-selector')
-      );
-      if (success) {
-        logger.info(`Successfully posted to Zhihu with account: ${this.account.account_username}`);
-        return true;
-      } else {
-        throw new Error('Failed to post to Zhihu');
-      }
+      // Wait for a specific element that indicates the user is logged in
+      await this.page.waitForSelector('a[href="/notifications"]', { timeout: 60000 });
+      logger.info(`Successfully logged in to Zhihu account: ${this.account.account_username}`);
     } catch (error: any) {
-      logger.error('Error during Zhihu posting:', error);
+      logger.error('Error waiting for Zhihu login success:', error);
       throw error;
     }
+  }
+
+  async post(content: string): Promise<boolean> {
+    // Implement posting logic here
+    return true;
   }
 }
 

@@ -1,3 +1,4 @@
+// AccountPoolManagement.tsx
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, message, Popconfirm, Tooltip, Space, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
@@ -31,9 +32,15 @@ const AccountPoolManagement: React.FC = () => {
   const [form] = Form.useForm();
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [qrCodeLoading, setQrCodeLoading] = useState<boolean>(false);
+  const [pollingIntervalId, setPollingIntervalId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchAccounts();
+    return () => {
+      if (pollingIntervalId) {
+        clearInterval(pollingIntervalId);
+      }
+    };
   }, []);
 
   const fetchAccounts = async () => {
@@ -82,12 +89,37 @@ const AccountPoolManagement: React.FC = () => {
     try {
       const response = await fetch(`${BASE_URL}/accounts/${id}/update-login-state`, { method: 'POST' });
       const data = await response.json();
-      setQrCodeUrl(data.qrCodeUrl);
-      message.success('二维码已获取，请扫码登录');
+      if (data.success) {
+        setQrCodeUrl(`data:image/png;base64,${data.qrCodeData}`);
+        setQrCodeLoading(false);
+        message.success('二维码已获取，请扫码登录');
+
+        // Start polling to check login status
+        const intervalId = window.setInterval(async () => {
+          const statusResponse = await fetch(`${BASE_URL}/accounts/${id}/login-status`);
+          const statusData = await statusResponse.json();
+          if (statusData.success && statusData.status === 'success') {
+            message.success('登录成功');
+            setQrCodeModalVisible(false);
+            clearInterval(intervalId);
+            setPollingIntervalId(null);
+            // Update the accounts list
+            fetchAccounts();
+          } else if (statusData.success && statusData.status === 'failed') {
+            message.error('登录失败');
+            setQrCodeModalVisible(false);
+            clearInterval(intervalId);
+            setPollingIntervalId(null);
+          }
+        }, 3000); // Poll every 3 seconds
+        setPollingIntervalId(intervalId);
+      } else {
+        message.error('获取二维码失败');
+        setQrCodeLoading(false);
+      }
     } catch (error) {
       console.error('Error updating login state:', error);
       message.error('获取二维码失败');
-    } finally {
       setQrCodeLoading(false);
     }
   };
@@ -162,7 +194,7 @@ const AccountPoolManagement: React.FC = () => {
       dataIndex: 'playwright_login_state',
       key: 'playwright_login_state',
       render: (text: string) => (
-        <span>{text || '无'}</span>
+        <span>{text ? '已保存' : '无'}</span>
       ),
     },
     {

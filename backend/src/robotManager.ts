@@ -1,3 +1,4 @@
+// robotManager.ts
 import BaseRobot, { Account as BaseAccount } from './robots/baseRobot';
 import ZhihuRobot from './robots/zhihuRobot';
 import logger from './logger';
@@ -8,14 +9,16 @@ type RobotConstructor = new (account: BaseAccount) => BaseRobot;
 
 const robotsMap: { [key: string]: RobotConstructor } = {
   'zhihu.com': ZhihuRobot,
-  // 'other-website.com': OtherRobot,
+  // Add other website robots here
 };
 
 class RobotManager {
-  private robots: { [key: string]: BaseRobot };
-
+  private robots: { [accountId: string]: BaseRobot };
+  private loginStatus: { [accountId: string]: 'pending' | 'success' | 'failed' };
+  
   constructor() {
     this.robots = {};
+    this.loginStatus = {};
   }
 
   private convertAccount(dbAccount: DBAccount): BaseAccount {
@@ -44,9 +47,10 @@ class RobotManager {
     const closePromises = Object.values(this.robots).map((robot) => robot.close());
     await Promise.all(closePromises);
     this.robots = {};
+    this.loginStatus = {};
   }
 
-  async updateLoginState(accountId: string | number): Promise<string> {
+  async startUpdateLoginState(accountId: string | number): Promise<string> {
     try {
       const numericAccountId = typeof accountId === 'string' ? parseInt(accountId, 10) : accountId;
       if (isNaN(numericAccountId)) {
@@ -60,17 +64,48 @@ class RobotManager {
 
       const account = this.convertAccount(dbAccount);
       const robot = this.getRobot(account.website_domain, account);
-      await robot.init();
-      const loginState = await robot.login();
+      
+      // Start the login process and get QR code image data
+      const qrCodeData = await robot.startLoginProcess();
 
-      await dbOperations.updateAccountLoginState(numericAccountId, loginState);
+      // Set login status to pending
+      this.loginStatus[accountId.toString()] = 'pending';
 
-      return loginState;
+      // Wait for login success in background
+      (async () => {
+        try {
+          await robot.waitForLoginSuccess();
+          const storageState = await robot.saveLoginState();
+
+          // Update the database with the storageState
+          await dbOperations.updateAccountLoginState(numericAccountId, storageState);
+
+          // Update login status
+          this.loginStatus[accountId.toString()] = 'success';
+
+          // Close the robot instance
+          await robot.close();
+          delete this.robots[accountId.toString()];
+        } catch (error) {
+          logger.error(`Error during login for account ${accountId}:`, error);
+          this.loginStatus[accountId.toString()] = 'failed';
+          // Close the robot instance
+          await robot.close();
+          delete this.robots[accountId.toString()];
+        }
+      })();
+
+      return qrCodeData;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error(`Error updating login state for account ${accountId}: ${errorMessage}`);
+      logger.error(`Error starting login state update for account ${accountId}: ${errorMessage}`);
       throw error;
     }
+  }
+
+  async getLoginStatus(accountId: string | number): Promise<'pending' | 'success' | 'failed'> {
+    const status = this.loginStatus[accountId.toString()] || 'pending';
+    return status;
   }
 }
 

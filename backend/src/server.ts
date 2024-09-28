@@ -1,10 +1,11 @@
+// sever.ts
 import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 import { fetchAllHotItems, requestAIService } from './apiClient';
 import { executeTask, generateReplies,  } from './taskExecutionService';
 import { dbOperations } from './dbOperations';
-// import { robotManager } from './robotManager';
+import  robotManager  from './robotManager';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -334,16 +335,27 @@ app.delete('/accounts/:id', async (req: Request, res: Response) => {
   }
 });
 
-// app.post('/accounts/:id/update-login-state', async (req: Request, res: Response) => {
-//   const id = parseInt(req.params.id, 10);
-//   try {
-//     await robotManager.updateLoginState(id);
-//     res.json({ success: true, message: 'Login state updated successfully' });
-//   } catch (error) {
-//     console.error('Error updating login state:', error);
-//     res.status(500).json({ success: false, error: 'Failed to update login state' });
-//   }
-// });
+app.post('/accounts/:id/update-login-state', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  try {
+    const qrCodeData = await robotManager.startUpdateLoginState(id);
+    res.json({ success: true, qrCodeData });
+  } catch (error) {
+    console.error('Error updating login state:', error);
+    res.status(500).json({ success: false, error: 'Failed to update login state' });
+  }
+});
+
+app.get('/accounts/:id/login-status', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  try {
+    const status = await robotManager.getLoginStatus(id);
+    res.json({ success: true, status });
+  } catch (error) {
+    console.error('Error getting login status:', error);
+    res.status(500).json({ success: false, error: 'Failed to get login status' });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
