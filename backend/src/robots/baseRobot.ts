@@ -1,34 +1,20 @@
-import { Browser, BrowserContext, Page } from 'playwright';
+// robots/baseRobot.ts
+import * as playwright from 'playwright';
 import logger from '../logger';
 
-interface Account {
+export interface Account {
+  id: string | number;
   account_username: string;
   account_password: string;
   playwright_login_state?: string;
-}
-
-interface StorageState {
-  cookies: Array<{
-    name: string;
-    value: string;
-    domain: string;
-    path: string;
-    expires: number;
-    httpOnly: boolean;
-    secure: boolean;
-    sameSite: 'Strict' | 'Lax' | 'None';
-  }>;
-  origins: Array<{
-    origin: string;
-    localStorage: Array<{ name: string; value: string }>;
-  }>;
+  website_domain: string;
 }
 
 abstract class BaseRobot {
   protected account: Account;
-  protected browser: Browser | null;
-  protected context: BrowserContext | null;
-  protected page: Page | null;
+  protected browser: playwright.Browser | null;
+  protected context: playwright.BrowserContext | null;
+  protected page: playwright.Page | null;
 
   constructor(account: Account) {
     this.account = account;
@@ -47,7 +33,7 @@ abstract class BaseRobot {
       }
 
       this.page = await this.context.newPage();
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error initializing browser:', error);
       throw error;
     }
@@ -62,9 +48,12 @@ abstract class BaseRobot {
       if (!this.context) {
         throw new Error('Browser context is not initialized');
       }
-      const storageState: StorageState = await this.context.storageState();
+      // Get the storage state of the context
+      const storageState = await this.context.storageState();
+
+      // Return the storage state as a JSON string
       return JSON.stringify(storageState);
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error saving login state:', error);
       throw error;
     }

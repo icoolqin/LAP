@@ -1,5 +1,6 @@
 import React from 'react';
-import ProLayout, { PageContainer } from '@ant-design/pro-layout';
+import ProLayout, { PageContainer, MenuDataItem, ProLayoutProps } from '@ant-design/pro-layout';
+import type { ItemType } from 'antd/es/breadcrumb/Breadcrumb';
 import { BrowserRouter as Router, Route, Routes, Link, useLocation, useParams } from 'react-router-dom';
 import { SmileOutlined } from '@ant-design/icons';
 import Dashboard from './pages/Dashboard';
@@ -9,11 +10,24 @@ import TaskManagement from './pages/TaskManagement';
 import TaskExecution from './pages/TaskExecution'; 
 import AccountPoolManagement from './pages/AccountPoolManagement';
 
-const BasicLayout = () => {
+interface MenuItem extends Omit<MenuDataItem, 'children'> {
+  path: string;
+  name: string;
+  icon?: React.ReactNode;
+  component?: React.ComponentType<any>;
+  hideInMenu?: boolean;
+  children?: MenuItem[];
+}
+
+interface RouteMap {
+  [key: string]: string;
+}
+
+const BasicLayout: React.FC = () => {
   const location = useLocation();
   const params = useParams();
 
-  const menuData = [
+  const menuData: MenuItem[] = [
     {
       path: '/dashboard',
       name: 'Dashboard',
@@ -23,7 +37,7 @@ const BasicLayout = () => {
       path: '/net-world',
       name: '网罗天下',
       icon: <SmileOutlined />,
-      routes: [
+      children: [
         {
           path: '/net-world/hot-posts',
           name: '热门帖子',
@@ -35,7 +49,7 @@ const BasicLayout = () => {
       path: '/announcement',
       name: '昭告全网',
       icon: <SmileOutlined />,
-      routes: [
+      children: [
         {
           path: '/announcement/promotion-items',
           name: '自建推广标的',
@@ -45,9 +59,9 @@ const BasicLayout = () => {
     },
     {
       path: '/conquer-world',
-      name: '驰骋江山', 
+      name: '驰骋江山',
       icon: <SmileOutlined />,
-      routes: [
+      children: [
         {
           path: '/conquer-world/task-management',
           name: '推广任务管理',
@@ -57,7 +71,7 @@ const BasicLayout = () => {
           path: '/conquer-world/task-execution/:id',
           name: '执行任务',
           component: TaskExecution,
-          hideInMenu: true, 
+          hideInMenu: true,
         },
       ],
     },
@@ -65,7 +79,7 @@ const BasicLayout = () => {
       path: '/armory',
       name: '兵戈甲库',
       icon: <SmileOutlined />,
-      routes: [
+      children: [
         {
           path: '/armory/account-pool',
           name: '账号池管理',
@@ -73,9 +87,9 @@ const BasicLayout = () => {
         },
       ],
     },
-  ];
+  ];  
 
-  const routeMap = {
+  const routeMap: RouteMap = {
     '/': '首页',
     '/dashboard': 'Dashboard',
     '/net-world': '网罗天下',
@@ -89,16 +103,16 @@ const BasicLayout = () => {
     '/armory/account-pool': '账号池管理',
   };
 
-  const getPageTitle = (pathname) => {
+  const getPageTitle = (pathname: string): string => {
     if (pathname.startsWith('/conquer-world/task-execution/')) {
       return '执行任务';
     }
     return routeMap[pathname] || pathname;
   };
 
-  const getBreadcrumb = (pathname) => {
-    const breadcrumbItems = [{ path: '/', breadcrumbName: '首页' }];
-
+  const getBreadcrumb = (pathname: string): { path: string; breadcrumbName: string }[] => {
+    const breadcrumbItems: { path: string; breadcrumbName: string }[] = [{ path: '/', breadcrumbName: '首页' }];
+  
     if (pathname.startsWith('/conquer-world/task-execution/')) {
       breadcrumbItems.push(
         { path: '/conquer-world', breadcrumbName: '驰骋江山' },
@@ -115,18 +129,24 @@ const BasicLayout = () => {
         });
       });
     }
-
+  
     return breadcrumbItems;
-  };
+  };  
+
+  const menuItemRender: ProLayoutProps['menuItemRender'] = (menuItemProps, defaultDom) => (
+    <Link to={menuItemProps.path || '/'}>{defaultDom}</Link>
+  );
 
   return (
     <ProLayout
       title="My Admin"
-      menuItemRender={(item, dom) => <Link to={item.path}>{dom}</Link>}
+      menuItemRender={(menuItemProps, defaultDom) => (
+        <Link to={menuItemProps.path || '/'}>{defaultDom}</Link>
+      )}
       menuDataRender={() => menuData}
       breadcrumbRender={(routers = []) => getBreadcrumb(location.pathname)}
       itemRender={(route) => <span>{route.breadcrumbName}</span>}
-      headerTitleRender={(logo, title) => (
+      headerTitleRender={(logo: React.ReactNode, title: React.ReactNode) => (
         <Link to="/">
           {logo}
           {title}

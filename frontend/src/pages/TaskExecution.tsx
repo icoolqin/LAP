@@ -9,23 +9,38 @@ const { TextArea } = Input;
 const { Step } = Steps;
 const BASE_URL = 'http://localhost:3000';
 
+interface TaskDetails {
+  name: string;
+  promotion_count: number;
+  post_count: number;
+}
 
-const TaskExecution = () => {
-  const { id } = useParams();
-  const [taskDetails, setTaskDetails] = useState(null);
-  const [executionData, setExecutionData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [matchPromptVisible, setMatchPromptVisible] = useState(false);
-  const [matchPrompt, setMatchPrompt] = useState('');
-  const [currentStep, setCurrentStep] = useState(0);
-  const [stepStatus, setStepStatus] = useState(['process', 'wait', 'wait']); 
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [generateReplyVisible, setGenerateReplyVisible] = useState(false);
-  const [generatePrompt, setGeneratePrompt] = useState('');
-  const [generateStepStatus, setGenerateStepStatus] = useState(['wait', 'wait', 'wait']);
-  const [generateCurrentStep, setGenerateCurrentStep] = useState(0);
-  const [isGenerating, setIsGenerating] = useState(false);
+interface ExecutionData {
+  id: string;
+  promotionItemName: string;
+  hotPostTitle: string;
+  hotPostUrl: string;
+  generated_reply: string;
+  generated_time: string;
+  robotName: string;
+  publishTime: string | null;
+}
 
+const TaskExecution: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null);
+  const [executionData, setExecutionData] = useState<ExecutionData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [matchPromptVisible, setMatchPromptVisible] = useState<boolean>(false);
+  const [matchPrompt, setMatchPrompt] = useState<string>('');
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [stepStatus, setStepStatus] = useState<('wait' | 'process' | 'finish' | 'error')[]>(['process', 'wait', 'wait']);
+  const [isExecuting, setIsExecuting] = useState<boolean>(false);
+  const [generateReplyVisible, setGenerateReplyVisible] = useState<boolean>(false);
+  const [generatePrompt, setGeneratePrompt] = useState<string>('');
+  const [generateStepStatus, setGenerateStepStatus] = useState<('wait' | 'process' | 'finish' | 'error')[]>(['wait', 'wait', 'wait']);
+  const [generateCurrentStep, setGenerateCurrentStep] = useState<number>(0);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   useEffect(() => {
     fetchTaskDetails();
@@ -66,10 +81,7 @@ const TaskExecution = () => {
     }
   };
 
-  // 定义 makeAIRequest 和 saveAIResult 的函数（或者从其他模块引入）
-const makeAIRequest = async (taskData, matchPrompt) => {
-    // 实现与 AI 的交互逻辑
-    // 示例：发送 POST 请求到你的 AI 服务端
+  const makeAIRequest = async (taskData: any, matchPrompt: string): Promise<any> => {
     const response = await fetch(`${BASE_URL}/ai/match`, {
       method: 'POST',
       headers: {
@@ -77,16 +89,15 @@ const makeAIRequest = async (taskData, matchPrompt) => {
       },
       body: JSON.stringify({ taskData, prompt: matchPrompt }),
     });
-  
+
     if (!response.ok) {
       throw new Error('AI request failed');
     }
-  
+
     return await response.json();
   };
-  
-  const saveAIResult = async (aiResult) => {
-    // 实现保存结果的逻辑
+
+  const saveAIResult = async (aiResult: any): Promise<void> => {
     const response = await fetch(`${BASE_URL}/tasks/save-result`, {
       method: 'POST',
       headers: {
@@ -94,7 +105,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
       },
       body: JSON.stringify(aiResult),
     });
-  
+
     if (!response.ok) {
       throw new Error('Failed to save AI result');
     }
@@ -104,14 +115,12 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     if (isExecuting) return;
     setIsExecuting(true);
     try {
-      // Step 1: 获取任务推广标的与网罗帖子
       setStepStatus(['process', 'wait', 'wait']);
       setCurrentStep(0);
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模拟API调用
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setStepStatus(['finish', 'process', 'wait']);
       setCurrentStep(1);
 
-      // Step 2: 拼装prompt进行AI请求
       const response = await fetch(`${BASE_URL}/tasks/${id}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,13 +134,11 @@ const makeAIRequest = async (taskData, matchPrompt) => {
       setStepStatus(['finish', 'finish', 'process']);
       setCurrentStep(2);
 
-      // Step 3: 获取AI返回结果并存储
       const result = await response.json();
       if (result.success) {
         setStepStatus(['finish', 'finish', 'finish']);
         message.success(result.message);
         
-        // 更新数据库中的 match_prompt
         await updateMatchPrompt();
         
         setTimeout(() => {
@@ -212,7 +219,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
       message.error('Failed to update match prompt');
     }
   };
-  
+
   const updateGeneratePrompt = async () => {
     try {
       const response = await fetch(`${BASE_URL}/tasks/${id}/generate-prompt`, {
@@ -259,7 +266,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('Execution data fetched:', data); // 添加调试日志
+      console.log('Execution data fetched:', data);
       setExecutionData(data);
     } catch (error) {
       console.error('Error fetching execution data:', error);
@@ -267,7 +274,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     } finally {
       setLoading(false);
     }
-  };  
+  };
 
   const handleMatch = async () => {
     try {
@@ -302,7 +309,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     }
   };
 
-  const handleDelete = async (executionId) => {
+  const handleDelete = async (executionId: string) => {
     try {
       await fetch(`${BASE_URL}/task-executions/${executionId}`, { method: 'DELETE' });
       message.success('Execution record deleted');
@@ -313,7 +320,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
     }
   };
 
-  const ActionButtons = () => (
+  const ActionButtons: React.FC<{ record: ExecutionData }> = ({ record }) => (
     <Space size="small">
       <Tooltip title="生成跟帖">
         <Button icon={<FormOutlined />} />
@@ -322,46 +329,51 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         <Button icon={<SendOutlined />} />
       </Tooltip>
       <Tooltip title="删除">
-        <Button icon={<DeleteOutlined />} danger />
+        <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
       </Tooltip>
     </Space>
   );
 
+  const truncateText = (text: string | undefined, length: number): string => {
+    if (!text) return '';
+    return text.length > length ? `${text.slice(0, length)}...` : text;
+  };
+
   const columns = [
-    { 
-      title: '推广标的', 
-      dataIndex: 'promotionItemName', 
+    {
+      title: '推广标的',
+      dataIndex: 'promotionItemName',
       key: 'promotionItemName',
       ellipsis: {
         showTitle: false,
       },
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text, 20)}
         </Tooltip>
       ),
     },
-    { 
-      title: '网罗帖子', 
-      dataIndex: 'hotPostTitle', 
+    {
+      title: '网罗帖子',
+      dataIndex: 'hotPostTitle',
       key: 'hotPostTitle',
       ellipsis: {
         showTitle: false,
       },
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text, 20)}
         </Tooltip>
       ),
     },
-    { 
-      title: '帖子URL', 
-      dataIndex: 'hotPostUrl', 
+    {
+      title: '帖子URL',
+      dataIndex: 'hotPostUrl',
       key: 'hotPostUrl',
       ellipsis: {
         showTitle: false,
       },
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           <a href={text} target="_blank" rel="noopener noreferrer">
             {truncateText(text, 30)}
@@ -369,51 +381,46 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         </Tooltip>
       ),
     },
-    { 
-      title: '生成跟帖', 
-      dataIndex: 'generated_reply', 
+    {
+      title: '生成跟帖',
+      dataIndex: 'generated_reply',
       key: 'generated_reply',
       ellipsis: {
         showTitle: false,
       },
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text, 30)}
         </Tooltip>
       ),
     },
-    { 
-      title: '生成时间', 
-      dataIndex: 'generated_time', 
+    {
+      title: '生成时间',
+      dataIndex: 'generated_time',
       key: 'generated_time',
-      render: (text) => moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss'),
+      render: (text: string) => moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss'),
     },
     { title: '发布robot', dataIndex: 'robotName', key: 'robotName' },
-    { 
-      title: '发布时间', 
-      dataIndex: 'publishTime', 
+    {
+      title: '发布时间',
+      dataIndex: 'publishTime',
       key: 'publishTime',
-      render: (text) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (text: string | null) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
+      fixed: 'right' as const,
       width: 140,
-      render: (_, record) => <ActionButtons record={record} />
+      render: (_: any, record: ExecutionData) => <ActionButtons record={record} />
     }
   ];
-
-  const truncateText = (text, length) => {
-    if (!text) return '';
-    return text.length > length ? `${text.slice(0, length)}...` : text;
-  };
 
   return (
     <div className="task-execution-container">
       <Row gutter={16} style={{ marginBottom: 16 }} align="middle" justify="space-between">
         <Col span={24}>
-        <Card className="task-info-card" style={{ body: { padding: '12px 24px' } }}>
+          <Card className="task-info-card" bodyStyle={{ padding: '12px 24px' }}>
             <Row gutter={16} align="middle">
               <Col>
                 <Tooltip title={taskDetails?.name}>
@@ -451,7 +458,7 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         </Steps>
         <TextArea
           value={matchPrompt}
-          onChange={(e) => setMatchPrompt(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMatchPrompt(e.target.value)}
           placeholder="Enter matching prompt"
           autoSize={{ minRows: 4, maxRows: 8 }}
           disabled={isExecuting}
@@ -473,20 +480,20 @@ const makeAIRequest = async (taskData, matchPrompt) => {
         </Steps>
         <TextArea
           value={generatePrompt}
-          onChange={(e) => setGeneratePrompt(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setGeneratePrompt(e.target.value)}
           placeholder="Enter generate prompt"
           autoSize={{ minRows: 4, maxRows: 8 }}
           disabled={isGenerating}
         />
       </Modal>
 
-      <Table
+      <Table<ExecutionData>
         columns={columns}
         dataSource={executionData}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 10 }}
-        scroll={{ x: 1500 }} 
+        scroll={{ x: 1500 }}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-// AccountPoolManagement.js
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, message, Popconfirm, Tooltip, Space, Spin } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SyncOutlined } from '@ant-design/icons';
@@ -6,15 +5,32 @@ import moment from 'moment';
 
 const BASE_URL = 'http://localhost:3000';
 
-const AccountPoolManagement = () => {
-  const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [addEditModalVisible, setAddEditModalVisible] = useState(false);
-  const [qrCodeModalVisible, setQrCodeModalVisible] = useState(false);
-  const [currentAccount, setCurrentAccount] = useState(null);
+interface Account {
+  id: string;
+  website_name: string;
+  website_domain: string;
+  account_status: string;
+  playwright_login_state: string;
+  login_state_update_time: string;
+  login_state_suggested_update_interval: string;
+  last_used_time: string;
+  account_username: string;
+  account_password: string;
+  account_bound_phone_number: string;
+  account_last_update_time: string;
+  recent_login_screenshot: string;
+  remarks: string;
+}
+
+const AccountPoolManagement: React.FC = () => {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [addEditModalVisible, setAddEditModalVisible] = useState<boolean>(false);
+  const [qrCodeModalVisible, setQrCodeModalVisible] = useState<boolean>(false);
+  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
   const [form] = Form.useForm();
-  const [qrCodeUrl, setQrCodeUrl] = useState(null);
-  const [qrCodeLoading, setQrCodeLoading] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [qrCodeLoading, setQrCodeLoading] = useState<boolean>(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -40,13 +56,13 @@ const AccountPoolManagement = () => {
     setAddEditModalVisible(true);
   };
 
-  const handleEdit = (record) => {
+  const handleEdit = (record: Account) => {
     setCurrentAccount(record);
     form.setFieldsValue(record);
     setAddEditModalVisible(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     try {
       await fetch(`${BASE_URL}/accounts/${id}`, { method: 'DELETE' });
       message.success('Account deleted successfully');
@@ -57,7 +73,7 @@ const AccountPoolManagement = () => {
     }
   };
 
-  const handleUpdateLoginState = async (id) => {
+  const handleUpdateLoginState = async (id: string) => {
     setQrCodeModalVisible(true);
     setQrCodeUrl(null);
     setQrCodeLoading(true);
@@ -102,7 +118,7 @@ const AccountPoolManagement = () => {
     }
   };
 
-  const truncateText = (text, length = 15) => {
+  const truncateText = (text: string | undefined, length: number = 15): string => {
     if (!text) return '';
     return text.length > length ? `${text.slice(0, length)}...` : text;
   };
@@ -112,7 +128,7 @@ const AccountPoolManagement = () => {
       title: '网站名称',
       dataIndex: 'website_name',
       key: 'website_name',
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text)}
         </Tooltip>
@@ -122,7 +138,7 @@ const AccountPoolManagement = () => {
       title: '网站域名',
       dataIndex: 'website_domain',
       key: 'website_domain',
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           <a href={text} target="_blank" rel="noopener noreferrer">
             {truncateText(text)}
@@ -134,7 +150,7 @@ const AccountPoolManagement = () => {
       title: '账号状态',
       dataIndex: 'account_status',
       key: 'account_status',
-      render: (text) => {
+      render: (text: string) => {
         let color = 'green';
         if (text === '暂停') color = 'orange';
         if (text === '失效') color = 'red';
@@ -145,7 +161,7 @@ const AccountPoolManagement = () => {
       title: 'Playwright登录状态保存',
       dataIndex: 'playwright_login_state',
       key: 'playwright_login_state',
-      render: (text) => (
+      render: (text: string) => (
         <span>{text || '无'}</span>
       ),
     },
@@ -153,13 +169,13 @@ const AccountPoolManagement = () => {
       title: '登录状态更新时间',
       dataIndex: 'login_state_update_time',
       key: 'login_state_update_time',
-      render: (text) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (text: string) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
       title: '距离上次更新时间',
       dataIndex: 'login_state_update_time',
       key: 'time_since_last_update',
-      render: (text) => {
+      render: (text: string) => {
         if (text) {
           const duration = moment.duration(moment().diff(moment(parseInt(text))));
           return `${duration.asHours().toFixed(1)} 小时`;
@@ -171,19 +187,19 @@ const AccountPoolManagement = () => {
       title: '登录状态建议更新周期',
       dataIndex: 'login_state_suggested_update_interval',
       key: 'login_state_suggested_update_interval',
-      render: (text) => text || '-',
+      render: (text: string) => text || '-',
     },
     {
       title: '最近一次使用时间',
       dataIndex: 'last_used_time',
       key: 'last_used_time',
-      render: (text) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (text: string) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
       title: '账号用户名',
       dataIndex: 'account_username',
       key: 'account_username',
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text)}
         </Tooltip>
@@ -194,7 +210,7 @@ const AccountPoolManagement = () => {
       dataIndex: 'account_password',
       key: 'account_password',
       render: () => (
-        <span>******</span> // 不在表格中显示明文密码
+        <span>******</span>
       ),
     },
     {
@@ -206,76 +222,75 @@ const AccountPoolManagement = () => {
       title: '账号最近更新时间',
       dataIndex: 'account_last_update_time',
       key: 'account_last_update_time',
-      render: (text) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
+      render: (text: string) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
       title: '最近一次登录网页截图',
       dataIndex: 'recent_login_screenshot',
       key: 'recent_login_screenshot',
-      render: (text) => text ? (
+      render: (text: string) => text ? (
         <a href={text} target="_blank" rel="noopener noreferrer">
           查看截图
         </a>
       ) : '-',
     },
-    // 备注字段
     {
       title: '备注',
       dataIndex: 'remarks',
       key: 'remarks',
-      render: (text) => (
+      render: (text: string) => (
         <Tooltip title={text}>
           {truncateText(text)}
         </Tooltip>
       ),
     },
     {
-        title: '操作',
-        key: 'action',
-        fixed: 'right',
-        width: 150,
-        render: (_, record) => (
-          <Space size="small">
-            <Tooltip title="编辑账号">
-              <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+      title: '操作',
+      key: 'action',
+      fixed: 'right' as const,
+      width: 150,
+      render: (_: any, record: Account) => (
+        <Space size="small">
+          <Tooltip title="编辑账号">
+            <Button icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          </Tooltip>
+          <Tooltip title="更新登录状态">
+            <Button icon={<SyncOutlined />} onClick={() => handleUpdateLoginState(record.id)} />
+          </Tooltip>
+          <Popconfirm
+            title="确认删除此账号吗？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="是"
+            cancelText="否"
+          >
+            <Tooltip title="删除">
+              <Button icon={<DeleteOutlined />} danger />
             </Tooltip>
-            <Tooltip title="更新登录状态">
-              <Button icon={<SyncOutlined />} onClick={() => handleUpdateLoginState(record.id)} />
-            </Tooltip>
-            <Popconfirm
-              title="确认删除此账号吗？"
-              onConfirm={() => handleDelete(record.id)}
-              okText="是"
-              cancelText="否"
-            >
-              <Tooltip title="删除">
-                <Button icon={<DeleteOutlined />} danger />
-              </Tooltip>
-            </Popconfirm>
-          </Space>
-        ),
-      },
-    ];
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-        <div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} style={{ marginBottom: 16 }}>
+    <div>
+      <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} style={{ marginBottom: 16 }}>
         新增账号
-        </Button>
-        <Table
+      </Button>
+      <Table
         columns={columns}
         dataSource={accounts}
         rowKey="id"
         loading={loading}
         scroll={{ x: 1500 }}
-        />
-        <Modal
+      />
+      <Modal
         title={currentAccount ? '编辑账号' : '新增账号'}
         visible={addEditModalVisible}
         onOk={handleAddEditModalOk}
         onCancel={() => setAddEditModalVisible(false)}
         width={600}
-        >
+      >
         <Form form={form} layout="vertical">
           <Form.Item
             name="website_name"

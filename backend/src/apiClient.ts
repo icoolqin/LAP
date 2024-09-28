@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { TrendingTopic } from './types';
 
 // Lucky Cola API configuration
 const LUCKY_COLA_API_BASE_URL = 'https://luckycola.com.cn/tools';
@@ -103,7 +104,7 @@ async function requestAIService(messageContent: string, serviceName: string = 'D
 }
 
 // Lucky Cola API functions
-async function fetchAllHotItems(): Promise<unknown[]> {
+async function fetchAllHotItems(): Promise<TrendingTopic[]> {
   try {
     console.log(`Fetching trending topics...`);
     const response: AxiosResponse<LuckyColaResponse> = await luckyColaApiClient.get('/newsHot', {
@@ -111,7 +112,7 @@ async function fetchAllHotItems(): Promise<unknown[]> {
     });
     
     if (response.data && response.data.code === 0) {
-      const items = response.data.data.items;
+      const items = response.data.data.items as TrendingTopic[];
       console.log(`Received ${items.length} trending topics.`);
       return items;
     } else {

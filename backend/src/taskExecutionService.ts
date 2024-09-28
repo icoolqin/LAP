@@ -1,103 +1,68 @@
-import { Database } from 'sqlite3';
-import { 
-  PromotionItem, 
-  HotPost, 
-  TaskExecution, 
-  AIResult, 
-  TaskData, 
-  GeneratedReply 
-} from './types';
+import { dbOperations } from './dbOperations';
 import { requestAIService } from './apiClient';
 
-// Type definitions
-interface PromotionItem {
-  id: number;
-  name: string;
-  description: string;
-  method?: string;
-  type?: string;
-}
-
-interface HotPost {
-  id: number;
-  title: string;
-  sitename: string;
-}
-
-interface TaskExecution {
-  id: number;
-  promotion_item_id: number;
-  hot_post_id: number;
+interface Match {
+  promotional_item_id: number;
+  post_id: string;
 }
 
 interface AIResult {
-  promotional_item_id: number;
-  post_id: number;
+  matches: Match[];
 }
 
 interface TaskData {
-  promotionItems: Partial<PromotionItem>[];
-  hotPosts: Partial<HotPost>[];
+  promotionItems: {
+    id: number;
+    name: string;
+    description: string;
+  }[];
+  hotPosts: {
+    id: string;
+    title: string;
+    sitename: string;
+  }[];
+}
+
+interface GenerateReplyData {
+  [key: string]: {
+    promotionItems: {
+      id: number;
+      name: string;
+      description: string;
+      method: string;
+      type: string;
+    };
+    hotPosts: {
+      id: string;
+      title: string;
+      sitename: string;
+    };
+  };
 }
 
 interface GeneratedReply {
   replyContent: string;
 }
 
-
-// Declare db as a property of the module
-declare const db: Database;
-
-// Database operations
-async function getTaskPromotionItems(taskId: number): Promise<PromotionItem[]> {
-  // Implementation remains the same, just add type annotations
-  return [] as PromotionItem[]; // Placeholder
-}
-
-async function getTaskHotPosts(taskId: number): Promise<HotPost[]> {
-  // Implementation remains the same, just add type annotations
-  return [] as HotPost[]; // Placeholder
-}
-
-async function getTaskExecutionDetails(taskId: number): Promise<TaskExecution[]> {
-  // Implementation remains the same, just add type annotations
-  return [] as TaskExecution[]; // Placeholder
-}
-
-// Save AI results to database
+// 保存AI结果到数据库
 async function saveAIResults(taskId: number, aiResult: string): Promise<void> {
   try {
     const jsonMatch = aiResult.match(/{[\s\S]*}/);
-
     if (!jsonMatch) {
       throw new Error('No JSON found in AI response');
     }
-
-    const matches: AIResult[] = JSON.parse(jsonMatch[0]).matches;
-
+    const matches = (JSON.parse(jsonMatch[0]) as AIResult).matches;
     const insertSql = `INSERT INTO task_executions (task_id, promotion_item_id, hot_post_id, status) VALUES (?, ?, ?, ?)`;
 
-    return new Promise<void>((resolve, reject) => {
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-        matches.forEach((match) => {
+    await dbOperations.runTransaction(async (db) => {
+      for (const match of matches) {
+        await new Promise<void>((resolve, reject) => {
           db.run(insertSql, [taskId, match.promotional_item_id, match.post_id, 'completed'], (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              reject(err);
-              return;
-            }
+            if (err) reject(err);
+            else resolve();
           });
         });
-        db.run('COMMIT', (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      }
     });
   } catch (error) {
     console.error('Error saving AI results:', error);
@@ -105,17 +70,19 @@ async function saveAIResults(taskId: number, aiResult: string): Promise<void> {
   }
 }
 
-// Execute task main function
-async function executeTask(taskId: number, userPrompt: string): Promise<{ success: boolean; message: string }> {
+// 执行任务的主函数
+export async function executeTask(taskId: number, userPrompt: string): Promise<{ success: boolean; message: string }> {
   try {
-    const promotionItems = await getTaskPromotionItems(taskId);
-    const hotPosts = await getTaskHotPosts(taskId);
+    const promotionItems = await dbOperations.getTaskPromotionItems(taskId);
+    const hotPosts = await dbOperations.getTaskHotPosts(taskId);
 
-    const filteredPromotionItems = promotionItems.map(item => ({
-      id: item.id,
+    const filteredPromotionItems = promotionItems
+    .filter(item => item.id !== undefined)
+    .map(item => ({
+      id: item.id!,
       name: item.name,
       description: item.description
-    }));
+    }));  
 
     const filteredHotPosts = hotPosts.map(post => ({
       id: post.id,
@@ -149,36 +116,24 @@ async function executeTask(taskId: number, userPrompt: string): Promise<{ succes
 
 async function saveGeneratedReplies(aiResult: string): Promise<void> {
   try {
-    const replies: Record<string, GeneratedReply> = JSON.parse(aiResult);
+    const replies = JSON.parse(aiResult) as Record<string, GeneratedReply>;
     const updateSql = `UPDATE task_executions 
                        SET generated_reply = ?, generated_time = ? 
                        WHERE id = ?`;
 
-    return new Promise<void>((resolve, reject) => {
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-        Object.entries(replies).forEach(([id, reply]) => {
+    await dbOperations.runTransaction(async (db) => {
+      for (const [id, reply] of Object.entries(replies)) {
+        await new Promise<void>((resolve, reject) => {
           db.run(updateSql, [
             reply.replyContent,
             Date.now(),
             id
           ], (err) => {
-            if (err) {
-              db.run('ROLLBACK');
-              reject(err);
-              return;
-            }
+            if (err) reject(err);
+            else resolve();
           });
         });
-        db.run('COMMIT', (err) => {
-          if (err) {
-            db.run('ROLLBACK');
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      }
     });
   } catch (error) {
     console.error('Error saving generated replies:', error);
@@ -186,15 +141,15 @@ async function saveGeneratedReplies(aiResult: string): Promise<void> {
   }
 }
 
-async function generateReplies(taskId: number, userPrompt: string): Promise<{ success: boolean; message: string }> {
+export async function generateReplies(taskId: number, userPrompt: string): Promise<{ success: boolean; message: string }> {
   try {
-    const taskExecutions = await getTaskExecutionDetails(taskId);
+    const taskExecutions = await dbOperations.getTaskExecutionDetails(taskId);
 
     const promotionItemIds = [...new Set(taskExecutions.map(e => e.promotion_item_id))];
     const hotPostIds = [...new Set(taskExecutions.map(e => e.hot_post_id))];
 
-    const promotionItems = await Promise.all(promotionItemIds.map(id => getTaskPromotionItems(taskId)));
-    const hotPosts = await Promise.all(hotPostIds.map(id => getTaskHotPosts(taskId)));
+    const promotionItems = await Promise.all(promotionItemIds.map(id => dbOperations.getTaskPromotionItems(taskId)));
+    const hotPosts = await Promise.all(hotPostIds.map(id => dbOperations.getTaskHotPosts(taskId)));
 
     const promotionItemMap = Object.fromEntries(
       promotionItems.filter(item => item && item.length > 0)
@@ -205,11 +160,11 @@ async function generateReplies(taskId: number, userPrompt: string): Promise<{ su
         .flatMap(posts => posts.map(post => [post.id, post]))
     );
 
-    const taskData: Record<string, TaskData> = {};
+    const taskData: GenerateReplyData = {};
     for (const execution of taskExecutions) {
+      if (execution.id === undefined) continue; 
       const promotionItem = promotionItemMap[execution.promotion_item_id];
       const hotPost = hotPostMap[execution.hot_post_id];
-
       if (promotionItem && hotPost) {
         taskData[execution.id] = {
           promotionItems: {
@@ -246,5 +201,3 @@ async function generateReplies(taskId: number, userPrompt: string): Promise<{ su
     throw error;
   }
 }
-
-export { executeTask, generateReplies };

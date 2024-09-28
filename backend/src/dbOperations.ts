@@ -1,78 +1,11 @@
 // dbOperations.ts
 import sqlite3 from 'sqlite3';
 import { Database, RunResult } from 'sqlite3';
+import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 
 const DB_PATH = './data/database.sqlite';
 
-interface TrendingTopic {
-  id: string;
-  title: string;
-  thumbnail: string;
-  url: string;
-  md5: string;
-  extra: string;
-  time: string;
-  nodeids: string;
-  topicid: string;
-  domain: string;
-  sitename: string;
-  logo: string;
-  views: string;
-}
-
-interface PromotionItem {
-  id?: number;
-  created_at: string;
-  name: string;
-  description: string;
-  method: string;
-  type: string;
-  additional_info: string;
-  status: string;
-}
-
-interface Task {
-  id?: number;
-  created_at: string;
-  name: string;
-  promotion_count: number;
-  post_count: number;
-  match_count: number;
-  stage: string;
-  match_prompt?: string;
-  generate_prompt?: string;
-}
-
-interface TaskExecution {
-  id?: number;
-  task_id: number;
-  promotion_item_id: number;
-  hot_post_id: string;
-  generated_reply: string;
-  generated_time: string;
-  robot_id: number;
-  publish_time: string;
-  status: string;
-}
-
-interface Account {
-  id?: number;
-  website_name: string;
-  website_domain: string;
-  account_status: string;
-  playwright_login_state: string;
-  login_state_update_time: string;
-  login_state_suggested_update_interval: string;
-  last_used_time: string;
-  account_username: string;
-  account_password: string;
-  account_bound_phone_number: string;
-  account_last_update_time: string;
-  recent_login_screenshot: string;
-  remarks: string;
-}
-
-class DBOperations {
+export class DBOperations {
   private db: Database;
 
   constructor() {
@@ -278,13 +211,27 @@ class DBOperations {
     });
   }
 
-  public updatePromotionItem(id: number, updatedItem: PromotionItem): Promise<number> {
+  public updatePromotionItem(id: number, updatedItem: Partial<PromotionItem>): Promise<number> {
     return new Promise((resolve, reject) => {
-      const { name, description, method, type, additional_info, status } = updatedItem;
-      const sql = `UPDATE promotion_items 
-                   SET name = ?, description = ?, method = ?, type = ?, additional_info = ?, status = ?
-                   WHERE id = ?`;
-      this.db.run(sql, [name, description, method, type, additional_info, status, id], function(err) {
+      const updates: string[] = [];
+      const values: any[] = [];
+      
+      Object.entries(updatedItem).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updates.push(`${key} = ?`);
+          values.push(value);
+        }
+      });
+      
+      if (updates.length === 0) {
+        resolve(0); // No fields to update
+        return;
+      }
+      
+      const sql = `UPDATE promotion_items SET ${updates.join(', ')} WHERE id = ?`;
+      values.push(id);
+      
+      this.db.run(sql, values, function(err) {
         if (err) {
           reject(err);
         } else {
@@ -345,6 +292,24 @@ class DBOperations {
           reject(err);
         } else {
           resolve(rows);
+        }
+      });
+    });
+  }
+
+  public getTaskPromotionItems(taskId: number): Promise<PromotionItem[]> {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT pi.* 
+        FROM promotion_items pi
+        JOIN task_promotion_items tpi ON pi.id = tpi.promotion_item_id
+        WHERE tpi.task_id = ?
+      `;
+      this.db.all<PromotionItem>(sql, [taskId], (err, rows) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(rows || []);
         }
       });
     });
@@ -582,6 +547,28 @@ class DBOperations {
     });
   }
 
+  public async runTransaction(callback: (db: Database) => Promise<void>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.serialize(async () => {
+        this.db.run('BEGIN TRANSACTION');
+        try {
+          await callback(this.db);
+          this.db.run('COMMIT', (err) => {
+            if (err) {
+              this.db.run('ROLLBACK');
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        } catch (error) {
+          this.db.run('ROLLBACK');
+          reject(error);
+        }
+      });
+    });
+  }
+
   public addAccount(account: Account): Promise<number> {
     return new Promise((resolve, reject) => {
       const {
@@ -625,39 +612,27 @@ class DBOperations {
     });
   }
 
-  public updateAccount(id: number, updatedAccount: Account): Promise<number> {
+  public updateAccount(id: number, updatedAccount: Partial<Account>): Promise<number> {
     return new Promise((resolve, reject) => {
-      const {
-        website_name,
-        website_domain,
-        account_status,
-        playwright_login_state,
-        login_state_update_time,
-        login_state_suggested_update_interval,
-        last_used_time,
-        account_username,
-        account_password,
-        account_bound_phone_number,
-        account_last_update_time,
-        recent_login_screenshot,
-        remarks
-      } = updatedAccount;
-      const sql = `UPDATE accounts SET 
-        website_name = ?, 
-        website_domain = ?, 
-        account_status = ?, 
-        playwright_login_state = ?, 
-        login_state_update_time = ?, 
-        login_state_suggested_update_interval = ?,
-        last_used_time = ?, 
-        account_username = ?, 
-        account_password = ?, 
-        account_bound_phone_number = ?, 
-        account_last_update_time = ?, 
-        recent_login_screenshot = ?, 
-        remarks = ?
-        WHERE id = ?`;
-      this.db.run(sql, [website_name, website_domain, account_status, playwright_login_state, login_state_update_time, login_state_suggested_update_interval, last_used_time, account_username, account_password, account_bound_phone_number, account_last_update_time, recent_login_screenshot, remarks, id], function(this: sqlite3.RunResult, err) {
+      const updates: string[] = [];
+      const values: any[] = [];
+      
+      Object.entries(updatedAccount).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updates.push(`${key} = ?`);
+          values.push(value);
+        }
+      });
+      
+      if (updates.length === 0) {
+        resolve(0); // No fields to update
+        return;
+      }
+      
+      const sql = `UPDATE accounts SET ${updates.join(', ')} WHERE id = ?`;
+      values.push(id);
+      
+      this.db.run(sql, values, function(err) {
         if (err) {
           reject(err);
         } else {

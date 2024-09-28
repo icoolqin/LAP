@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Popconfirm, Badge, Card, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { ColumnsType } from 'antd/es/table';
 
 const BASE_URL = 'http://localhost:3000';
 
-function PromotionItems() {
-    const [items, setItems] = useState([]);
-    const [visible, setVisible] = useState(false);
-    const [currentItem, setCurrentItem] = useState(null);
-    const [form] = Form.useForm();
+interface PromotionItem {
+    id: string;
+    created_at: string;
+    name: string;
+    description: string;
+    method: string;
+    type: string;
+    additional_info: string;
+    status: '启用' | '停用';
+}
+
+const PromotionItems: React.FC = () => {
+    const [items, setItems] = useState<PromotionItem[]>([]);
+    const [visible, setVisible] = useState<boolean>(false);
+    const [currentItem, setCurrentItem] = useState<PromotionItem | null>(null);
+    const [form] = Form.useForm<PromotionItem>();
 
     useEffect(() => {
         fetchItems();
@@ -33,12 +45,12 @@ function PromotionItems() {
         setCurrentItem(null);
     };
 
-    const handleEdit = (record) => {
+    const handleEdit = (record: PromotionItem) => {
         setCurrentItem(record);
         setVisible(true);
     };
 
-    const handleSave = (values) => {
+    const handleSave = (values: PromotionItem) => {
         const url = currentItem
             ? `${BASE_URL}/promotion-items/${currentItem.id}`
             : `${BASE_URL}/promotion-items`;
@@ -54,14 +66,14 @@ function PromotionItems() {
         });
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = (id: string) => {
         fetch(`${BASE_URL}/promotion-items/${id}`, { method: 'DELETE' })
             .then(() => {
                 fetchItems();
             });
     };
 
-    const handleToggleStatus = (id, status) => {
+    const handleToggleStatus = (id: string, status: '启用' | '停用') => {
         fetch(`${BASE_URL}/promotion-items/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -71,13 +83,13 @@ function PromotionItems() {
         });
     };
 
-    const columns = [
+    const columns: ColumnsType<PromotionItem> = [
         {
             title: '加入时间',
             dataIndex: 'created_at',
             key: 'created_at',
             width: 180,
-            render: (text) => new Date(text).toLocaleString('zh-CN', {
+            render: (text: string) => new Date(text).toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: 'numeric',
                 day: 'numeric',
@@ -95,7 +107,7 @@ function PromotionItems() {
             ellipsis: {
                 showTitle: false,
             },
-            render: (text) => (
+            render: (text: string) => (
                 <Tooltip title={text}>
                     <span>{text}</span>
                 </Tooltip>
@@ -109,7 +121,7 @@ function PromotionItems() {
             ellipsis: {
                 showTitle: false,
             },
-            render: (text) => (
+            render: (text: string) => (
                 <Tooltip title={text}>
                     <span>{text}</span>
                 </Tooltip>
@@ -123,7 +135,7 @@ function PromotionItems() {
             ellipsis: {
                 showTitle: false,
             },
-            render: (text) => (
+            render: (text: string) => (
                 <Tooltip title={text}>
                     <span>{text}</span>
                 </Tooltip>
@@ -143,7 +155,7 @@ function PromotionItems() {
             ellipsis: {
                 showTitle: false,
             },
-            render: (text) => (
+            render: (text: string) => (
                 <Tooltip title={text}>
                     <span>{text}</span>
                 </Tooltip>
@@ -154,7 +166,7 @@ function PromotionItems() {
             dataIndex: 'status',
             key: 'status',
             width: 100,
-            render: (status) => (
+            render: (status: '启用' | '停用') => (
                 <Badge
                     status={status === '启用' ? 'success' : 'default'}
                     text={status}
@@ -166,7 +178,7 @@ function PromotionItems() {
             key: 'action',
             fixed: 'right',
             width: 150,
-            render: (_, record) => (
+            render: (_, record: PromotionItem) => (
                 <span>
                     <Tooltip title="修改">
                         <Button
@@ -204,7 +216,7 @@ function PromotionItems() {
                     新增标的
                 </Button>
             </div>
-            <Table
+            <Table<PromotionItem>
                 columns={columns}
                 dataSource={items}
                 rowKey="id"
@@ -218,7 +230,7 @@ function PromotionItems() {
                 footer={null}
             >
                 <Card bordered={false}>
-                    <Form
+                    <Form<PromotionItem>
                         form={form}
                         onFinish={handleSave}
                         labelCol={{ span: 6 }}
@@ -258,6 +270,6 @@ function PromotionItems() {
             </Modal>
         </div>
     );
-}
+};
 
 export default PromotionItems;

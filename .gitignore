@@ -4,4 +4,4 @@ backend/node_modules
 backend/dist
 backend/*.log
 frontend/node_modules
-frontend/distgit commit -m "Remove dist folder from tracking"
+frontend/distgit 

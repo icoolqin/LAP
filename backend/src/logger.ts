@@ -1,4 +1,4 @@
-// logger.js,实现日志记录功能
+// logger.ts,实现日志记录功能
 import { createLogger, format, transports } from 'winston';
 
 const logger = createLogger({
@@ -28,4 +28,4 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-module.exports = logger;
+export default logger;

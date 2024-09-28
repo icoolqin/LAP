@@ -8,23 +8,65 @@ const { Step } = Steps;
 
 const BASE_URL = 'http://localhost:3000';
 
+interface Task {
+    id: string;
+    name: string;
+    created_at: string;
+    promotion_count: number;
+    post_count: number;
+    match_count: number;
+    stage: string;
+}
+
+interface PromotionItem {
+    id: string;
+    name: string;
+    type: string;
+    created_at: string;
+}
+
+interface HotPost {
+    id: string;
+    time: number;
+    title: string;
+    domain: string;
+}
+
+interface Filters {
+    dateRange?: [moment.Moment, moment.Moment];
+    name?: string;
+    type?: string;
+}
+
+interface HotPostFilters {
+    dateRange?: [moment.Moment, moment.Moment];
+    title?: string;
+    domain?: string;
+}
+
+interface HotPostPagination {
+    current: number;
+    pageSize: number;
+    total: number;
+}
+
 function TaskManagement() {
-    const [tasks, setTasks] = useState([]);
-    const [drawerVisible, setDrawerVisible] = useState(false);
-    const [currentStep, setCurrentStep] = useState(0);
-    const [currentTask, setCurrentTask] = useState(null);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
+    const [currentStep, setCurrentStep] = useState<number>(0);
+    const [currentTask, setCurrentTask] = useState<Task | null>(null);
     const [form] = Form.useForm();
-    const [taskName, setTaskName] = useState('');
+    const [taskName, setTaskName] = useState<string>('');
 
-    const [promotionItems, setPromotionItems] = useState([]);
-    const [selectedItems, setSelectedItems] = useState([]);
-    const [filters, setFilters] = useState({});
-    const [isEditing, setIsEditing] = useState(false);
+    const [promotionItems, setPromotionItems] = useState<PromotionItem[]>([]);
+    const [selectedItems, setSelectedItems] = useState<PromotionItem[]>([]);
+    const [filters, setFilters] = useState<Filters>({});
+    const [isEditing, setIsEditing] = useState<boolean>(false);
 
-    const [selectedHotPosts, setSelectedHotPosts] = useState([]);
-    const [hotPostFilters, setHotPostFilters] = useState({});
-    const [hotPosts, setHotPosts] = useState([]);
-    const [hotPostsPagination, setHotPostsPagination] = useState({
+    const [selectedHotPosts, setSelectedHotPosts] = useState<HotPost[]>([]);
+    const [hotPostFilters, setHotPostFilters] = useState<HotPostFilters>({});
+    const [hotPosts, setHotPosts] = useState<HotPost[]>([]);
+    const [hotPostsPagination, setHotPostsPagination] = useState<HotPostPagination>({
         current: 1,
         pageSize: 10,
         total: 0,
@@ -87,25 +129,25 @@ function TaskManagement() {
         setSelectedItems([]);
     };
 
-    const handleDeleteSelectedItem = (id) => {
+    const handleDeleteSelectedItem = (id: string) => {
         setSelectedItems(selectedItems.filter(item => item.id !== id));
     };
 
     const handleClearSelectedHotPosts = () => {
         setSelectedHotPosts([]);
-        setHotPosts([]); 
-      };
+        setHotPosts([]);
+    };
 
-      const handleDrawerOpen = () => {
+    const handleDrawerOpen = () => {
         setDrawerVisible(true);
         setCurrentStep(0);
         form.resetFields();
         setSelectedItems([]);
-        setSelectedHotPosts([]); 
-        setHotPosts([]); 
-      };
+        setSelectedHotPosts([]);
+        setHotPosts([]);
+    };
 
-      const handleDrawerClose = () => {
+    const handleDrawerClose = () => {
         setDrawerVisible(false);
         setIsEditing(false);
         setCurrentTask(null);
@@ -113,29 +155,29 @@ function TaskManagement() {
         setSelectedItems([]);
         setSelectedHotPosts([]);
         setHotPosts([]);
-      };
+    };
 
     const handleNext = () => {
         if (currentStep === 0) {
-          form.validateFields().then(() => {
-            setTaskName(form.getFieldValue('name'));
-            setCurrentStep(currentStep + 1);
-          }).catch((error) => {
-            console.error('Validation failed:', error);
-          });
+            form.validateFields().then(() => {
+                setTaskName(form.getFieldValue('name'));
+                setCurrentStep(currentStep + 1);
+            }).catch((error) => {
+                console.error('Validation failed:', error);
+            });
         } else {
-          setCurrentStep(currentStep + 1);
+            setCurrentStep(currentStep + 1);
         }
-      };
+    };
 
     const handlePrevious = () => {
         setCurrentStep(currentStep - 1);
     };
 
-    const handleFinish = (values) => {
+    const handleFinish = () => {
         const taskData = {
             name: form.getFieldValue('name'),
-            stage: isEditing ? currentTask.stage : '初创',
+            stage: isEditing && currentTask ? currentTask.stage : '初创',
         };
 
         const payload = {
@@ -144,7 +186,7 @@ function TaskManagement() {
             hotPosts: selectedHotPosts,
         };
 
-        const url = isEditing ? `${BASE_URL}/tasks/${currentTask.id}` : `${BASE_URL}/tasks/create`;
+        const url = isEditing && currentTask ? `${BASE_URL}/tasks/${currentTask.id}` : `${BASE_URL}/tasks/create`;
         const method = isEditing ? 'PUT' : 'POST';
 
         fetch(url, {
@@ -168,7 +210,7 @@ function TaskManagement() {
             });
     };
 
-    const handleEdit = (record) => {
+    const handleEdit = (record: Task) => {
         setCurrentTask(record);
         setDrawerVisible(true);
         setIsEditing(true);
@@ -189,19 +231,19 @@ function TaskManagement() {
         fetch(`${BASE_URL}/tasks/${record.id}/hot-posts`)
             .then(response => response.json())
             .then(data => {
-            setSelectedHotPosts(data);
-            setHotPosts(data); // 同时更新热门帖子列表
+                setSelectedHotPosts(data);
+                setHotPosts(data);
             })
             .catch(error => console.error('Error fetching hot posts:', error));
     };
 
-    const handleDelete = (id) => {
+    const handleDelete = (id: string) => {
         fetch(`${BASE_URL}/tasks/${id}`, { method: 'DELETE' })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     message.success('任务已删除');
-                    fetchTasks(); // 重新获取任务列表
+                    fetchTasks();
                 } else {
                     throw new Error('Delete operation was not successful');
                 }
@@ -227,52 +269,50 @@ function TaskManagement() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(params),
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.items && Array.isArray(data.items)) {
-                setHotPosts(data.items);
-                setHotPostsPagination({
-                    current: page,
-                    pageSize: pageSize,
-                    total: data.total,
-                });
-                // 直接将查询到的帖子添加到已选列表
-                setSelectedHotPosts(prevSelected => {
-                    const newItems = data.items.filter(item => !prevSelected.some(prevItem => prevItem.id === item.id));
-                    return [...prevSelected, ...newItems];
-                });
-            } else {
-                console.error('Received invalid data:', data);
+            .then(response => response.json())
+            .then(data => {
+                if (data.items && Array.isArray(data.items)) {
+                    setHotPosts(data.items);
+                    setHotPostsPagination({
+                        current: page,
+                        pageSize: pageSize,
+                        total: data.total,
+                    });
+                    setSelectedHotPosts(prevSelected => {
+                        const newItems = data.items.filter((item: HotPost) => !prevSelected.some(prevItem => prevItem.id === item.id));
+                        return [...prevSelected, ...newItems];
+                    });
+                } else {
+                    console.error('Received invalid data:', data);
+                    message.error('Failed to fetch hot posts. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Failed to fetch hot posts:', error);
                 message.error('Failed to fetch hot posts. Please try again.');
-            }
-        })
-        .catch(error => {
-            console.error('Failed to fetch hot posts:', error);
-            message.error('Failed to fetch hot posts. Please try again.');
-        });
+            });
     };
 
-    
     const handleQueryAndAddHotPosts = () => {
         fetchHotPosts(1, hotPostsPagination.pageSize);
     };
 
-    const handleHotPostTableChange = (pagination) => {
+    const handleHotPostTableChange = (pagination: any) => {
         fetchHotPosts(pagination.current, pagination.pageSize);
     };
-    
-    const handleDeleteSelectedHotPost = (id) => {
+
+    const handleDeleteSelectedHotPost = (id: string) => {
         setSelectedHotPosts(prevSelected => prevSelected.filter(item => item.id !== id));
         setHotPosts(prevHotPosts => prevHotPosts.filter(item => item.id !== id));
-      };      
-    
+    };
+
     const hotPostColumns = [
         {
             title: 'Date',
             dataIndex: 'time',
             key: 'time',
-            render: (text) => {
-                const date = moment(text * 1000); 
+            render: (text: number) => {
+                const date = moment(text * 1000);
                 return date.isValid() ? date.format('YYYY-MM-DD HH:mm:ss') : 'Invalid date';
             },
         },
@@ -289,21 +329,21 @@ function TaskManagement() {
         {
             title: '操作',
             key: 'action',
-            render: (_, record) => (
+            render: (_: any, record: HotPost) => (
                 <Button type="link" onClick={() => handleDeleteSelectedHotPost(record.id)}>
                     删除
                 </Button>
             ),
         },
     ];
-    
+
     const hotPostFilterForm = (
         <Form layout="inline" style={{ marginBottom: 16 }}>
             <Form.Item label="日期">
                 <DatePicker.RangePicker
                     showTime={{ format: 'HH:mm:ss' }}
                     format="YYYY-MM-DD HH:mm:ss"
-                    onChange={(dates) => setHotPostFilters({ ...hotPostFilters, dateRange: dates })}
+                    onChange={(dates) => setHotPostFilters({ ...hotPostFilters, dateRange: dates as [moment.Moment, moment.Moment] })}
                 />
             </Form.Item>
             <Form.Item label="标题">
@@ -327,12 +367,11 @@ function TaskManagement() {
             dataIndex: 'created_at',
             key: 'created_at',
             width: 180,
-            render: (text) => {
-                const timestamp = parseInt(text.toString().slice(0, 13), 10); 
+            render: (text: string) => {
+                const timestamp = parseInt(text.toString().slice(0, 13), 10);
                 const date = new Date(timestamp);
                 return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
             },
-                      
         },
         {
             title: '任务名称',
@@ -342,7 +381,7 @@ function TaskManagement() {
             ellipsis: {
                 showTitle: false,
             },
-            render: (text) => (
+            render: (text: string) => (
                 <Tooltip title={text}>
                     <span>{text}</span>
                 </Tooltip>
@@ -371,8 +410,8 @@ function TaskManagement() {
             dataIndex: 'stage',
             key: 'stage',
             width: 150,
-            render: (stage) => {
-                const stageMap = {
+            render: (stage: string) => {
+                const stageMap: { [key: string]: string } = {
                     '初创': 'processing',
                     '匹配': 'processing',
                     '生成': 'processing',
@@ -380,16 +419,16 @@ function TaskManagement() {
                     '完成': 'success',
                 };
                 return (
-                    <Badge status={stageMap[stage]} text={stage} />
+                    <Badge status={stageMap[stage] as any} text={stage} />
                 );
             },
         },
         {
             title: '操作',
             key: 'action',
-            fixed: 'right',
+            fixed: 'right' as const,
             width: 120,
-            render: (_, record) => (
+            render: (_: any, record: Task) => (
                 <span>
                     <Tooltip title="编辑">
                         <Button
@@ -431,7 +470,7 @@ function TaskManagement() {
                 <DatePicker.RangePicker
                     showTime={{ format: 'HH:mm:ss' }}
                     format="YYYY-MM-DD HH:mm:ss"
-                    onChange={(dates) => setFilters({ ...filters, dateRange: dates })}
+                    onChange={(dates) => setFilters({ ...filters, dateRange: dates as [moment.Moment, moment.Moment] })}
                 />
             </Form.Item>
             <Form.Item label="标的名称">
@@ -454,7 +493,7 @@ function TaskManagement() {
             title: '加入时间',
             dataIndex: 'created_at',
             key: 'created_at',
-            render: (text) => moment(text).format('YYYY-MM-DD HH:mm:ss'),
+            render: (text: string) => moment(text).format('YYYY-MM-DD HH:mm:ss'),
         },
         {
             title: '标的名称',
@@ -469,7 +508,7 @@ function TaskManagement() {
         {
             title: '操作',
             key: 'action',
-            render: (_, record) => (
+            render: (_: any, record: PromotionItem) => (
                 <Button type="link" onClick={() => handleDeleteSelectedItem(record.id)}>
                     删除
                 </Button>
@@ -489,7 +528,7 @@ function TaskManagement() {
                 <Input onChange={(e) => setTaskName(e.target.value)} />
               </Form.Item>
             ),
-          },
+        },
         {
             title: '选择推广标的',
             content: (
@@ -546,7 +585,7 @@ function TaskManagement() {
             </div>
             <Table
                 columns={columns}
-                dataSource={tasks || []}
+                dataSource={tasks}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
                 scroll={{ x: 1300 }}
@@ -559,38 +598,38 @@ function TaskManagement() {
                 bodyStyle={{ paddingBottom: 80 }}
             >
                 <Steps current={currentStep}>
-          {steps.map((step, index) => (
-            <Step key={index} title={step.title} />
-          ))}
-        </Steps>
-        <Form
-          form={form}
-          layout="vertical"
-          hideRequiredMark
-          initialValues={{}}
-          style={{ marginTop: 24 }}
-        >
-          {steps[currentStep].content}
-          <div style={{ marginTop: 24 }}>
-            {currentStep > 0 && (
-              <Button style={{ margin: '0 8px' }} onClick={handlePrevious}>
-                上一步
-              </Button>
-            )}
-            {currentStep < steps.length - 1 && (
-              <Button type="primary" onClick={handleNext}>
-                下一步
-              </Button>
-            )}
-            {currentStep === steps.length - 1 && (
-              <Button type="primary" onClick={handleFinish}>
-                完成
-              </Button>
-            )}
-          </div>
-        </Form>
-      </Drawer>
-    </div>
+                    {steps.map((step, index) => (
+                        <Step key={index} title={step.title} />
+                    ))}
+                </Steps>
+                <Form
+                    form={form}
+                    layout="vertical"
+                    hideRequiredMark
+                    initialValues={{}}
+                    style={{ marginTop: 24 }}
+                >
+                    {steps[currentStep].content}
+                    <div style={{ marginTop: 24 }}>
+                        {currentStep > 0 && (
+                            <Button style={{ margin: '0 8px' }} onClick={handlePrevious}>
+                                上一步
+                            </Button>
+                        )}
+                        {currentStep < steps.length - 1 && (
+                            <Button type="primary" onClick={handleNext}>
+                                下一步
+                            </Button>
+                        )}
+                        {currentStep === steps.length - 1 && (
+                            <Button type="primary" onClick={handleFinish}>
+                                完成
+                            </Button>
+                        )}
+                    </div>
+                </Form>
+            </Drawer>
+        </div>
     );
 }
 

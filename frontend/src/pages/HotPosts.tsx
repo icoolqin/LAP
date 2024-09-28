@@ -1,19 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
+import type { TableColumnsType } from 'antd';
 
-const HotPosts = () => {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
+interface HotItem {
+  id: string;
+  time: number;
+  title: string;
+  domain: string;
+  views: number;
+  url: string;
+}
 
-  const fetchHotItems = async () => {
+interface FetchResponse {
+  success: boolean;
+  error?: string;
+}
+
+interface LoadResponse {
+  items: HotItem[];
+}
+
+const HotPosts: React.FC = () => {
+  const [data, setData] = useState<HotItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const fetchHotItems = async (): Promise<void> => {
     setLoading(true);
     try {
       const response = await fetch('http://localhost:3000/update-hot-items');
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
-      const result = await response.json();
+      const result: FetchResponse = await response.json();
       if (result.success) {
         await loadHotItems();
         message.success('热点数据已更新');
@@ -21,17 +40,19 @@ const HotPosts = () => {
         throw new Error(result.error || 'Failed to update hot items');
       }
     } catch (error) {
-      message.error(`拉取热点失败: ${error.message}`);
-      console.error('Error fetching hot items:', error);
+      if (error instanceof Error) {
+        message.error(`拉取热点失败: ${error.message}`);
+        console.error('Error fetching hot items:', error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const loadHotItems = async () => {
+  const loadHotItems = async (): Promise<void> => {
     try {
       const response = await fetch('http://localhost:3000/get-hot-items');
-      const result = await response.json();
+      const result: LoadResponse = await response.json();
       setData(result.items || []);
     } catch (error) {
       console.error('Error loading hot items:', error);
@@ -42,17 +63,17 @@ const HotPosts = () => {
     loadHotItems();
   }, []);
 
-  const columns = [
+  const columns: TableColumnsType<HotItem> = [
     {
-        title: 'Date',
-        dataIndex: 'time',
-        key: 'time',
-        render: (text) => {
-          const date = new Date(text * 1000); // 将时间戳转换为毫秒
-          return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
-        },
-        ellipsis: true,
+      title: 'Date',
+      dataIndex: 'time',
+      key: 'time',
+      render: (text: number) => {
+        const date = new Date(text * 1000);
+        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
       },
+      ellipsis: true,
+    },
     {
       title: 'Title',
       dataIndex: 'title',
@@ -75,7 +96,7 @@ const HotPosts = () => {
       title: 'URL',
       dataIndex: 'url',
       key: 'url',
-      render: (text) => {
+      render: (text: string) => {
         const maxLength = 25;
         const displayText = text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
         return (

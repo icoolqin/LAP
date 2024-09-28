@@ -1,9 +1,10 @@
 import cors from 'cors';
 import express, { Request, Response } from 'express';
+import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 import { fetchAllHotItems, requestAIService } from './apiClient';
-import { executeTask, generateReplies } from './taskExecutionService';
+import { executeTask, generateReplies,  } from './taskExecutionService';
 import { dbOperations } from './dbOperations';
-import { RobotManager } from './robotManager';
+// import { robotManager } from './robotManager';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,32 +12,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-interface HotItem {
-  // Define the structure of a hot item
-}
-
-interface PromotionItem {
-  id?: string;
-  name: string;
-  type: string;
-  created_at: number;
-  // Add other properties as needed
-}
-
-interface Task {
-  id?: string;
-  // Define other properties of a task
-}
-
-interface Account {
-  id?: string;
-  // Define other properties of an account
-}
-
 app.get('/update-hot-items', async (_req: Request, res: Response) => {
   try {
-    const items = await fetchAllHotItems();
-    await saveHotItems(items);
+    const items: TrendingTopic[] = await fetchAllHotItems();
+    await dbOperations.saveHotItems(items);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating trending topics:', error);
@@ -46,7 +25,7 @@ app.get('/update-hot-items', async (_req: Request, res: Response) => {
 
 app.get('/get-hot-items', async (_req: Request, res: Response) => {
   try {
-    const items = await getHotItems();
+    const items = await dbOperations.getHotItems();
     res.json({ items });
   } catch (error) {
     console.error('Error getting hot items:', error);
@@ -68,7 +47,7 @@ app.post('/hot-posts/search', async (req: Request, res: Response) => {
       };
     }
 
-    const result = await getHotPosts(filters, page, pageSize);
+    const result = await dbOperations.getHotPosts(filters, page, pageSize);
     res.json(result);
   } catch (error) {
     console.error('Error fetching hot posts:', error);
@@ -78,7 +57,7 @@ app.post('/hot-posts/search', async (req: Request, res: Response) => {
 
 app.get('/promotion-items', async (_req: Request, res: Response) => {
   try {
-    const items = await getAllPromotionItems();
+    const items = await dbOperations.getAllPromotionItems();
     res.json(items);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch promotion items' });
@@ -88,8 +67,8 @@ app.get('/promotion-items', async (_req: Request, res: Response) => {
 app.post('/promotion-items', async (req: Request, res: Response) => {
   try {
     const item: PromotionItem = req.body;
-    item.created_at = Date.now();
-    const id = await addPromotionItem(item);
+    item.created_at = new Date().toISOString(); // 使用 ISO 字符串格式
+    const id = await dbOperations.addPromotionItem(item);
     res.json({ id });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add promotion item' });
@@ -98,9 +77,9 @@ app.post('/promotion-items', async (req: Request, res: Response) => {
 
 app.put('/promotion-items/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
+    const id = parseInt(req.params.id, 10);
     const updatedItem: Partial<PromotionItem> = req.body;
-    await updatePromotionItem(id, updatedItem);
+    await dbOperations.updatePromotionItem(id, updatedItem);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update promotion item' });
@@ -109,8 +88,8 @@ app.put('/promotion-items/:id', async (req: Request, res: Response) => {
 
 app.delete('/promotion-items/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    await deletePromotionItem(id);
+    const id = parseInt(req.params.id, 10);
+    await dbOperations.deletePromotionItem(id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete promotion item' });
@@ -119,9 +98,9 @@ app.delete('/promotion-items/:id', async (req: Request, res: Response) => {
 
 app.put('/promotion-items/:id/status', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
+    const id = parseInt(req.params.id, 10);
     const { status } = req.body;
-    await togglePromotionItemStatus(id, status);
+    await dbOperations.togglePromotionItemStatus(id, status);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update promotion item status' });
@@ -142,7 +121,7 @@ app.post('/promotion-items/search', async (req: Request, res: Response) => {
       };
     }
 
-    const items = await getPromotionItems(filters);
+    const items = await dbOperations.getPromotionItems(filters);
     res.json(items || []);
   } catch (error) {
     console.error('Error fetching promotion items:', error);
@@ -152,7 +131,7 @@ app.post('/promotion-items/search', async (req: Request, res: Response) => {
 
 app.get('/tasks', async (_req: Request, res: Response) => {
   try {
-    const tasks = await getAllTasks();
+    const tasks = await dbOperations.getAllTasks();
     res.json(tasks || []);
   } catch (error) {
     console.error('Error fetching tasks:', error);
@@ -162,8 +141,8 @@ app.get('/tasks', async (_req: Request, res: Response) => {
 
 app.get('/tasks/:id', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    const task = await getTaskById(taskId);
+    const taskId = parseInt(req.params.id, 10);
+    const task = await dbOperations.getTaskById(taskId);
     if (task) {
       res.json(task);
     } else {
@@ -177,9 +156,9 @@ app.get('/tasks/:id', async (req: Request, res: Response) => {
 
 app.put('/tasks/:id/match-prompt', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
+    const taskId = parseInt(req.params.id, 10);
     const { matchPrompt } = req.body;
-    await updateTaskMatchPrompt(taskId, matchPrompt);
+    await dbOperations.updateTaskMatchPrompt(taskId, matchPrompt);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update task match prompt' });
@@ -189,8 +168,8 @@ app.put('/tasks/:id/match-prompt', async (req: Request, res: Response) => {
 app.post('/tasks', async (req: Request, res: Response) => {
   try {
     const task: Task = req.body;
-    task.created_at = Date.now();
-    const id = await addTask(task);
+    task.created_at = new Date().toISOString(); 
+    const id = await dbOperations.addTask(task);
     res.json({ id });
   } catch (error) {
     res.status(500).json({ error: 'Failed to add task' });
@@ -199,8 +178,8 @@ app.post('/tasks', async (req: Request, res: Response) => {
 
 app.delete('/tasks/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    await deleteTask(id);
+    const id = parseInt(req.params.id, 10);
+    await dbOperations.deleteTask(id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete task' });
@@ -210,7 +189,7 @@ app.delete('/tasks/:id', async (req: Request, res: Response) => {
 app.post('/tasks/create', async (req: Request, res: Response) => {
   try {
     const { taskData, promotionItems, hotPosts } = req.body;
-    const taskId = await createTaskWithRelations(taskData, promotionItems, hotPosts);
+    const taskId = await dbOperations.createTaskWithRelations(taskData, promotionItems, hotPosts);
     res.json({ success: true, taskId });
   } catch (error) {
     console.error('Error creating task:', error);
@@ -220,8 +199,8 @@ app.post('/tasks/create', async (req: Request, res: Response) => {
 
 app.get('/tasks/:id/promotion-items', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    const items = await getTaskPromotionItems(taskId);
+    const taskId = parseInt(req.params.id, 10); 
+    const items = await dbOperations.getTaskPromotionItems(taskId);
     res.json(items);
   } catch (error) {
     console.error('Error fetching task promotion items:', error);
@@ -231,8 +210,8 @@ app.get('/tasks/:id/promotion-items', async (req: Request, res: Response) => {
 
 app.get('/tasks/:id/hot-posts', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    const posts = await getTaskHotPosts(taskId);
+    const taskId = parseInt(req.params.id, 10);
+    const posts = await dbOperations.getTaskHotPosts(taskId);
     res.json(posts);
   } catch (error) {
     console.error('Error fetching task hot posts:', error);
@@ -242,9 +221,9 @@ app.get('/tasks/:id/hot-posts', async (req: Request, res: Response) => {
 
 app.put('/tasks/:id', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
+    const taskId = parseInt(req.params.id);
     const { taskData, promotionItems, hotPosts } = req.body;
-    await updateTaskWithRelations(taskId, taskData, promotionItems, hotPosts);
+    await dbOperations.updateTaskWithRelations(taskId, taskData as Task, promotionItems as PromotionItem[], hotPosts as TrendingTopic[]);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating task:', error);
@@ -254,8 +233,8 @@ app.put('/tasks/:id', async (req: Request, res: Response) => {
 
 app.get('/tasks/:id/execution', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
-    const executionDetails = await getTaskExecutionDetails(taskId);
+    const taskId = parseInt(req.params.id, 10);
+    const executionDetails = await dbOperations.getTaskExecutionDetails(taskId);
     res.json(executionDetails);
   } catch (error) {
     console.error('Error fetching task execution details:', error);
@@ -265,8 +244,8 @@ app.get('/tasks/:id/execution', async (req: Request, res: Response) => {
 
 app.delete('/task-executions/:id', async (req: Request, res: Response) => {
   try {
-    const executionId = req.params.id;
-    await deleteTaskExecution(executionId);
+    const executionId = parseInt(req.params.id, 10);
+    await dbOperations.deleteTaskExecution(executionId);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting task execution:', error);
@@ -275,7 +254,7 @@ app.delete('/task-executions/:id', async (req: Request, res: Response) => {
 });
 
 app.post('/tasks/:id/execute', async (req: Request, res: Response) => {
-  const taskId = req.params.id;
+  const taskId = parseInt(req.params.id, 10);
   const { matchPrompt } = req.body;
 
   try {
@@ -288,7 +267,7 @@ app.post('/tasks/:id/execute', async (req: Request, res: Response) => {
 });
 
 app.post('/tasks/:id/generate-replies', async (req: Request, res: Response) => {
-  const taskId = req.params.id;
+  const taskId = parseInt(req.params.id, 10);
   const { generatePrompt } = req.body;
 
   try {
@@ -302,9 +281,9 @@ app.post('/tasks/:id/generate-replies', async (req: Request, res: Response) => {
 
 app.put('/tasks/:id/generate-prompt', async (req: Request, res: Response) => {
   try {
-    const taskId = req.params.id;
+    const taskId = parseInt(req.params.id, 10);
     const { generatePrompt } = req.body;
-    await updateTaskGeneratePrompt(taskId, generatePrompt);
+    await dbOperations.updateTaskGeneratePrompt(taskId, generatePrompt);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update task generate prompt' });
@@ -313,7 +292,7 @@ app.put('/tasks/:id/generate-prompt', async (req: Request, res: Response) => {
 
 app.get('/accounts', async (_req: Request, res: Response) => {
   try {
-    const accounts = await getAllAccounts();
+    const accounts = await dbOperations.getAllAccounts();
     res.json(accounts);
   } catch (error) {
     console.error('Error fetching accounts:', error);
@@ -324,7 +303,7 @@ app.get('/accounts', async (_req: Request, res: Response) => {
 app.post('/accounts', async (req: Request, res: Response) => {
   try {
     const account: Account = req.body;
-    const id = await addAccount(account);
+    const id = await dbOperations.addAccount(account);
     res.json({ id });
   } catch (error) {
     console.error('Error adding account:', error);
@@ -334,9 +313,9 @@ app.post('/accounts', async (req: Request, res: Response) => {
 
 app.put('/accounts/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
+    const id = parseInt(req.params.id, 10);
     const updatedAccount: Partial<Account> = req.body;
-    await updateAccount(id, updatedAccount);
+    await dbOperations.updateAccount(id, updatedAccount);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating account:', error);
@@ -346,8 +325,8 @@ app.put('/accounts/:id', async (req: Request, res: Response) => {
 
 app.delete('/accounts/:id', async (req: Request, res: Response) => {
   try {
-    const id = req.params.id;
-    await deleteAccount(id);
+    const id = parseInt(req.params.id, 10);
+    await dbOperations.deleteAccount(id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error deleting account:', error);
@@ -355,16 +334,16 @@ app.delete('/accounts/:id', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/accounts/:id/update-login-state', async (req: Request, res: Response) => {
-  const { id } = req.params;
-  try {
-    await robotManager.updateLoginState(id);
-    res.json({ success: true, message: 'Login state updated successfully' });
-  } catch (error) {
-    console.error('Error updating login state:', error);
-    res.status(500).json({ success: false, error: 'Failed to update login state' });
-  }
-});
+// app.post('/accounts/:id/update-login-state', async (req: Request, res: Response) => {
+//   const id = parseInt(req.params.id, 10);
+//   try {
+//     await robotManager.updateLoginState(id);
+//     res.json({ success: true, message: 'Login state updated successfully' });
+//   } catch (error) {
+//     console.error('Error updating login state:', error);
+//     res.status(500).json({ success: false, error: 'Failed to update login state' });
+//   }
+// });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
