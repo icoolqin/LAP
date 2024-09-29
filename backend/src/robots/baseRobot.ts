@@ -25,7 +25,7 @@ abstract class BaseRobot {
 
   async init(): Promise<void> {
     try {
-      this.browser = await playwright.chromium.launch({ headless: true });
+      this.browser = await playwright.chromium.launch({ headless: false });
       this.context = await this.browser.newContext();
 
       if (this.account.playwright_login_state) {

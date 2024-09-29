@@ -1,31 +1,46 @@
-// logger.ts,实现日志记录功能
 import { createLogger, format, transports } from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 
-const logger = createLogger({
-  level: 'info',
-  format: format.combine(
-    format.timestamp({
-      format: 'YYYY-MM-DD HH:mm:ss'
-    }),
-    format.errors({ stack: true }),
-    format.splat(),
-    format.json()
-  ),
-  defaultMeta: { service: 'robot-service' },
-  transports: [
-    new transports.File({ filename: 'error.log', level: 'error' }),
-    new transports.File({ filename: 'combined.log' }),
-  ],
+const { combine, timestamp, printf, colorize, errors } = format;
+
+// 自定义日志格式
+const myFormat = printf(({ level, message, timestamp, stack }) => {
+  return `${timestamp} [${level}]: ${stack || message}`;
 });
 
-// 如果不是生产环境，则同时输出到控制台
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new transports.Console({
-    format: format.combine(
-      format.colorize(),
-      format.simple()
-    )
-  }));
-}
+const logger = createLogger({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: combine(
+    errors({ stack: true }),
+    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    myFormat
+  ),
+  transports: [
+    // 控制台输出
+    new transports.Console({
+      format: combine(
+        colorize(),
+        myFormat
+      )
+    }),
+    // 信息日志文件
+    new DailyRotateFile({
+      filename: 'logs/application-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d'
+    }),
+    // 错误日志文件
+    new DailyRotateFile({
+      filename: 'logs/error-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
+      level: 'error'
+    })
+  ]
+});
 
 export default logger;

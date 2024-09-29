@@ -14,28 +14,20 @@ class ZhihuRobot extends BaseRobot {
         throw new Error('Page is not initialized');
       }
 
+      // Navigate to the Zhihu login page
       await this.page.goto('https://www.zhihu.com/signin', { waitUntil: 'networkidle' });
 
-      // Click on the QR code login tab
-      await this.page.click('.SignFlow-qrcodeTab');
+      // Wait for the page to load completely
+      await this.page.waitForLoadState('networkidle');
 
-      // Wait for the QR code image to be visible
-      await this.page.waitForSelector('.SignFlow-qrcode img', { timeout: 10000 });
+      // Take a screenshot of the entire page
+      const screenshotBuffer = await this.page.screenshot({ fullPage: true });
 
-      // Get the QR code image element
-      const qrCodeElement = await this.page.$('.SignFlow-qrcode img');
-      if (!qrCodeElement) {
-        throw new Error('QR code element not found');
-      }
-
-      // Take a screenshot of the QR code element
-      const qrCodeBuffer = await qrCodeElement.screenshot();
-
-      // Convert buffer to base64 string
-      const qrCodeBase64 = qrCodeBuffer.toString('base64');
+      // Convert the buffer to a base64 string
+      const screenshotBase64 = screenshotBuffer.toString('base64');
 
       // Return the base64 string
-      return qrCodeBase64;
+      return screenshotBase64;
     } catch (error: any) {
       logger.error('Error during Zhihu login process:', error);
       throw error;
