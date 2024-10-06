@@ -1,6 +1,7 @@
 // robots/zhihuRobot.ts
-import BaseRobot, { Account } from './baseRobot';
+import BaseRobot from './baseRobot';
 import logger from '../logger';
+import { Account  } from '../types';
 
 class ZhihuRobot extends BaseRobot {
   constructor(account: Account) {

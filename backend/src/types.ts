@@ -51,7 +51,7 @@ export interface TrendingTopic {
   }
   
   export interface Account {
-    id?: number;
+    id: string;
     website_name: string;
     website_domain: string;
     account_status: string;

@@ -1,32 +1,34 @@
 // robots/baseRobot.ts
-import * as playwright from 'playwright';
+import { chromium, firefox, webkit } from 'playwright-extra';
+import { Browser, BrowserContext, Page } from 'playwright'; 
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Account  } from '../types';
+
 import logger from '../logger';
 
-export interface Account {
-  id: string | number;
-  account_username: string;
-  account_password: string;
-  playwright_login_state?: string;
-  website_domain: string;
-}
 
 abstract class BaseRobot {
   protected account: Account;
-  protected browser: playwright.Browser | null;
-  protected context: playwright.BrowserContext | null;
-  protected page: playwright.Page | null;
+  protected browser: Browser | null;
+  protected context: BrowserContext | null;
+  protected page: Page | null;
 
   constructor(account: Account) {
     this.account = account;
     this.browser = null;
     this.context = null;
     this.page = null;
+    
+    // Add stealth plugin to all browser types
+    chromium.use(StealthPlugin());
+    firefox.use(StealthPlugin());
+    webkit.use(StealthPlugin());
   }
 
   async init(): Promise<void> {
     try {
-      this.browser = await playwright.chromium.launch({ headless: false });
-      this.context = await this.browser.newContext();
+      this.browser = await chromium.launch({ headless: false });
+      this.context = await this.browser!.newContext();
 
       if (this.account.playwright_login_state) {
         await this.context.addCookies(JSON.parse(this.account.playwright_login_state));

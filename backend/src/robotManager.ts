@@ -1,5 +1,6 @@
 // robotManager.ts
-import BaseRobot, { Account as BaseAccount } from './robots/baseRobot';
+import BaseRobot from './robots/baseRobot';
+import { Account as BaseAccount } from './types';
 import ZhihuRobot from './robots/zhihuRobot';
 import logger from './logger';
 import { dbOperations } from './dbOperations';

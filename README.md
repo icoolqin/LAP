@@ -18,6 +18,9 @@
 在后端运行 npm run build 然后 npm start 来测试服务器。
 在前端运行 npm start 来测试 React 应用。
 
+# tips
+许多网站使用 CAPTCHA 来阻止机器人。如果经常遇到 CAPTCHA，考虑使用第三方服务（如 2Captcha、Anti-Captcha）来自动识别和绕过 CAPTCHA。
+
 # 运行项目
 ## 首先把依赖都安装了，根据package.json里的配置
 运行：npm install
