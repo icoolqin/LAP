@@ -11,6 +11,7 @@
 
 
 # TODO List：
+先把发帖函数写好，然后给chatGPT看
 使用了StealthPlugin为啥还是被检测出是自动化工具
 保存登录状态的脚本是否正常 -》 使用状态校验是否登录 -》 然后发帖。怎么局部检查脚本是否正确work
 0，在登录场景用人工登录方式，然后把浏览器配置的更像普通浏览器，而不是一眼就被网站识别到是playwright自动化的
@@ -28,11 +29,25 @@
 先启动后端服务：在 backend 里运行：npm run build 先构建js代码，然后npm start
 如果是想要修改代码后自动重启，运行：npm run dev
 
+运行测试：
+   ```
+   npm test
+   ```
+   或者在开发过程中持续运行测试：
+   ```
+   npm run test:watch
+   ```
+
 ## 运行前端：
 再启动前端服务：在 frontend里运行：PORT=3001 npm start 
 （指定在3001端口运行，因为3000被backend用了）
 
 网罗天下 - 热门帖子 页面：http://localhost:3000/net-world/hot-posts
+
+## 关于数据库：
+### 给表添加字段：
+ALTER TABLE 表名称 ADD COLUMN 字段名称 字段类型;
+ALTER TABLE task_executions ADD COLUMN account_id INTEGER;
 
 ## 本地llama运行命令
 命令：ollama run llama3.1

@@ -46,6 +46,7 @@ export interface TrendingTopic {
     generated_reply: string;
     generated_time: string;
     robot_id: number;
+    account_id: number;
     publish_time: string;
     status: string;
   }

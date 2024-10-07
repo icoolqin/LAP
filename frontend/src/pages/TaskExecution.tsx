@@ -1,3 +1,4 @@
+//TaskExecution.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip, Steps, Divider, Space } from 'antd';
@@ -23,6 +24,7 @@ interface ExecutionData {
   generated_reply: string;
   generated_time: string;
   robotName: string;
+  accountName: string;
   publishTime: string | null;
 }
 
@@ -401,6 +403,7 @@ const TaskExecution: React.FC = () => {
       render: (text: string) => moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss'),
     },
     { title: '发布robot', dataIndex: 'robotName', key: 'robotName' },
+    { title: '发布账号', dataIndex: 'accountName', key: 'accountName' },
     {
       title: '发布时间',
       dataIndex: 'publishTime',

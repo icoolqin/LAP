@@ -77,6 +77,7 @@ export class DBOperations {
         generated_reply TEXT,
         generated_time TEXT,
         robot_id INTEGER,
+        account_id INTEGER,
         publish_time TEXT,
         status TEXT,
         FOREIGN KEY (task_id) REFERENCES tasks(id),
