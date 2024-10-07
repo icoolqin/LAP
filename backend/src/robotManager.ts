@@ -1,12 +1,11 @@
 // robotManager.ts
 import BaseRobot from './robots/baseRobot';
-import { Account as BaseAccount } from './types';
 import ZhihuRobot from './robots/zhihuRobot';
 import logger from './logger';
 import { dbOperations } from './dbOperations';
-import { Account as DBAccount } from './types';
+import { Account } from './types';
 
-type RobotConstructor = new (account: BaseAccount) => BaseRobot;
+type RobotConstructor = new (account: Account) => BaseRobot;
 
 const robotsMap: { [key: string]: RobotConstructor } = {
   'zhihu.com': ZhihuRobot,
@@ -22,14 +21,7 @@ class RobotManager {
     this.loginStatus = {};
   }
 
-  private convertAccount(dbAccount: DBAccount): BaseAccount {
-    return {
-      ...dbAccount,
-      id: dbAccount.id?.toString() || '',
-    };
-  }
-
-  getRobot(siteDomain: string, account: BaseAccount): BaseRobot {
+  getRobot(siteDomain: string, account: Account): BaseRobot {
     const RobotClass = robotsMap[siteDomain];
     if (!RobotClass) {
       throw new Error(`No robot found for site: ${siteDomain}`);
@@ -63,7 +55,7 @@ class RobotManager {
         throw new Error(`Account not found with id: ${numericAccountId}`);
       }
 
-      const account = this.convertAccount(dbAccount);
+      const account = dbAccount; // No need to convert
       const robot = this.getRobot(account.website_domain, account);
       
       // Start the login process and get QR code image data
@@ -107,6 +99,14 @@ class RobotManager {
   async getLoginStatus(accountId: string | number): Promise<'pending' | 'success' | 'failed'> {
     const status = this.loginStatus[accountId.toString()] || 'pending';
     return status;
+  }
+
+  async closeRobot(accountId: string | number): Promise<void> {
+    const id = accountId.toString();
+    if (this.robots[id]) {
+      await this.robots[id].close();
+      delete this.robots[id];
+    }
   }
 }
 

@@ -45,14 +45,14 @@ export interface TrendingTopic {
     hot_post_id: string;
     generated_reply: string;
     generated_time: string;
-    robot_id: number;
-    account_id: number;
-    publish_time: string;
+    robot_id: number | null;
+    account_id: number | null;
+    publish_time: string | null;
     status: string;
   }
   
   export interface Account {
-    id: string;
+    id: number;
     website_name: string;
     website_domain: string;
     account_status: string;

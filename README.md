@@ -58,6 +58,7 @@ ALTER TABLE task_executions ADD COLUMN account_id INTEGER;
 
 ## 打印目录树的命令
 tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔开）
+tree -I 'node_modules|logs'
 
 ## 每日热点的免费接口
 1，当前在用的：https://luckycola.com.cn/public/docs/shares/api/hotnews.html，每个月需要重新获取一下接口key

@@ -3,9 +3,7 @@ import { chromium, firefox, webkit } from 'playwright-extra';
 import { Browser, BrowserContext, Page, devices, BrowserType } from 'playwright'; 
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { Account  } from '../types';
-
 import logger from '../logger';
-
 
 abstract class BaseRobot {
   protected account: Account;
@@ -76,7 +74,7 @@ abstract class BaseRobot {
 
   abstract waitForLoginSuccess(): Promise<void>;
 
-  abstract post(content: string): Promise<boolean>;
+  abstract post(url: string, content: string): Promise<boolean>;
 
   async saveLoginState(): Promise<string> {
     try {

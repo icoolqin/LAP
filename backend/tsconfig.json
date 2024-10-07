@@ -8,12 +8,13 @@
     "strict": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "types": ["jest", "@types/jest"],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/global.d.ts", "src/**/*"],
+  "include": ["src/global.d.ts", "src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"],
   "ts-node": {
     "files": true

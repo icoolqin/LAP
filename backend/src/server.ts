@@ -3,7 +3,7 @@ import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 import { fetchAllHotItems, requestAIService } from './apiClient';
-import { executeTask, generateReplies,  } from './taskExecutionService';
+import { executeTask, generateReplies, publishReply  } from './taskExecutionService';
 import { dbOperations } from './dbOperations';
 import  robotManager  from './robotManager';
 
@@ -251,6 +251,17 @@ app.delete('/task-executions/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error deleting task execution:', error);
     res.status(500).json({ error: 'Failed to delete task execution' });
+  }
+});
+
+app.post('/task-executions/:id/publish', async (req: Request, res: Response) => {
+  const executionId = parseInt(req.params.id, 10);
+  try {
+    const result = await publishReply(executionId);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error publishing reply:', error);
+    res.status(500).json({ error: 'Failed to publish reply' });
   }
 });
 

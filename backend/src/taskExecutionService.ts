@@ -1,5 +1,9 @@
+// taskExecutionService.ts
 import { dbOperations } from './dbOperations';
 import { requestAIService } from './apiClient';
+import robotManager from './robotManager';
+import { Account, TaskExecution } from './types';
+import { extractMainDomain } from './utils';
 
 interface Match {
   promotional_item_id: number;
@@ -198,6 +202,62 @@ export async function generateReplies(taskId: number, userPrompt: string): Promi
     return { success: true, message: 'Replies generated successfully' };
   } catch (error) {
     console.error('Error generating replies:', error);
+    throw error;
+  }
+}
+
+export async function publishReply(executionId: number): Promise<{ success: boolean }> {
+  try {
+    // Get the execution record
+    const executionRecord = await dbOperations.getExecutionById(executionId);
+
+    if (!executionRecord) {
+      throw new Error(`Execution record with id ${executionId} not found`);
+    }
+
+    const { hotPostUrl, generated_reply } = executionRecord;
+
+    if (!hotPostUrl || !generated_reply) {
+      throw new Error('Missing post URL or generated reply content');
+    }
+
+    // Extract the main domain from hotPostUrl
+    const mainDomain = extractMainDomain(hotPostUrl);
+
+    if (!mainDomain) {
+      throw new Error('Failed to extract main domain from post URL');
+    }
+
+    // Find an account matching the main domain with valid login state
+    const accounts = await dbOperations.getAccountsByDomain(mainDomain);
+
+    if (!accounts || accounts.length === 0) {
+      throw new Error(`No accounts found for domain ${mainDomain}`);
+    }
+
+    const account = accounts.find(acc => acc.playwright_login_state);
+
+    if (!account) {
+      throw new Error(`No accounts with valid login state for domain ${mainDomain}`);
+    }
+
+    // Get the robot for the main domain
+    const robot = robotManager.getRobot(mainDomain, account);
+
+    // Use the robot to post the content
+    const postSuccess = await robot.post(hotPostUrl, generated_reply);
+
+    if (!postSuccess) {
+      throw new Error('Failed to post reply');
+    }
+
+    // Update the execution record with publishing account and time
+    const publishTime = Date.now().toString();
+    await dbOperations.updateExecutionPublishInfo(executionId, account.id, publishTime);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error publishing reply:', error);
     throw error;
   }
 }

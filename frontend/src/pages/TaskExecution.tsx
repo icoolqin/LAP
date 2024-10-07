@@ -328,13 +328,37 @@ const TaskExecution: React.FC = () => {
         <Button icon={<FormOutlined />} />
       </Tooltip>
       <Tooltip title="发布跟帖">
-        <Button icon={<SendOutlined />} />
+        <Button icon={<SendOutlined />} onClick={() => handlePublishReply(record)} />
       </Tooltip>
       <Tooltip title="删除">
         <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
       </Tooltip>
     </Space>
-  );
+  );  
+
+  const handlePublishReply = async (record: ExecutionData) => {
+    try {
+      const response = await fetch(`${BASE_URL}/task-executions/${record.id}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to publish reply');
+      }
+  
+      const result = await response.json();
+      if (result.success) {
+        message.success('Reply published successfully');
+        fetchExecutionData();
+      } else {
+        throw new Error(result.error || 'Failed to publish reply');
+      }
+    } catch (error) {
+      console.error('Error publishing reply:', error);
+      message.error('Failed to publish reply');
+    }
+  };  
 
   const truncateText = (text: string | undefined, length: number): string => {
     if (!text) return '';

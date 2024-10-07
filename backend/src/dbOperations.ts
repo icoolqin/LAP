@@ -1,6 +1,6 @@
 // dbOperations.ts
 import sqlite3 from 'sqlite3';
-import { Database, RunResult } from 'sqlite3';
+import { Database} from 'sqlite3';
 import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 
 const DB_PATH = './data/database.sqlite';
@@ -509,20 +509,19 @@ export class DBOperations {
     });
   }
 
-  public getTaskExecutionDetails(taskId: number): Promise<TaskExecution[]> {
+  public getTaskExecutionDetails(taskId: number): Promise<(TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string; accountName: string })[]> {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT te.id, te.task_id, te.promotion_item_id, te.hot_post_id, te.generated_reply, te.generated_time, 
-               te.robot_id, te.publish_time, te.status, pi.name AS promotionItemName, 
-               tt.title AS hotPostTitle, tt.url AS hotPostUrl
+        SELECT te.*, pi.name AS promotionItemName, tt.title AS hotPostTitle, tt.url AS hotPostUrl, a.account_username AS accountName
         FROM task_executions te
         LEFT JOIN promotion_items pi ON te.promotion_item_id = pi.id
         LEFT JOIN trending_topics tt ON te.hot_post_id = tt.id
-        WHERE te.task_id = ?`;
-      
-      this.db.all<TaskExecution & { promotionItemName: string, hotPostTitle: string, hotPostUrl: string }>(
-        sql, 
-        [taskId], 
+        LEFT JOIN accounts a ON te.account_id = a.id
+        WHERE te.task_id = ?
+      `;
+      this.db.all<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string; accountName: string }>(
+        sql,
+        [taskId],
         (err, rows) => {
           if (err) {
             console.error('Error in getTaskExecutionDetails:', err);
@@ -532,6 +531,46 @@ export class DBOperations {
           }
         }
       );
+    });
+  }
+
+  //Get execution by ID
+  public getExecutionById(executionId: number): Promise<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string }> {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT te.*, pi.name AS promotionItemName, tt.title AS hotPostTitle, tt.url AS hotPostUrl
+        FROM task_executions te
+        LEFT JOIN promotion_items pi ON te.promotion_item_id = pi.id
+        LEFT JOIN trending_topics tt ON te.hot_post_id = tt.id
+        WHERE te.id = ?
+      `;
+      this.db.get<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string }>(
+        sql,
+        [executionId],
+        (err, row) => {
+          if (err) {
+            console.error('Error in getExecutionById:', err);
+            reject(err);
+          } else {
+            resolve(row);
+          }
+        }
+      );
+    });
+  }
+
+  //Update execution publish info
+  public updateExecutionPublishInfo(executionId: number, accountId: number, publishTime: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE task_executions SET account_id = ?, publish_time = ? WHERE id = ?`;
+      this.db.run(sql, [accountId, publishTime, executionId], (err) => {
+        if (err) {
+          console.error('Error in updateExecutionPublishInfo:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
     });
   }
 
@@ -605,6 +644,21 @@ export class DBOperations {
       const sql = `SELECT * FROM accounts ORDER BY id DESC`;
       this.db.all<Account>(sql, [], (err, rows) => {
         if (err) {
+          reject(err);
+        } else {
+          resolve(rows);
+        }
+      });
+    });
+  }
+
+  // Get accounts by domain
+  public getAccountsByDomain(domain: string): Promise<Account[]> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM accounts WHERE website_domain = ?`;
+      this.db.all<Account>(sql, [domain], (err, rows) => {
+        if (err) {
+          console.error('Error in getAccountsByDomain:', err);
           reject(err);
         } else {
           resolve(rows);
