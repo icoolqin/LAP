@@ -42,7 +42,7 @@ class ZhihuRobot extends BaseRobot {
       }
 
       // Wait for a specific element that indicates the user is logged in
-      await this.page.waitForSelector('a[href="/notifications"]', { timeout: 60000 });
+      await this.page.waitForSelector('text="创作中心"', { timeout: 60000 });
       logger.info(`Successfully logged in to Zhihu account: ${this.account.account_username}`);
     } catch (error: any) {
       logger.error('Error waiting for Zhihu login success:', error);

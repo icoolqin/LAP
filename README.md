@@ -11,12 +11,11 @@
 
 
 # TODO List：
+使用了StealthPlugin为啥还是被检测出是自动化工具
+保存登录状态的脚本是否正常 -》 使用状态校验是否登录 -》 然后发帖。怎么局部检查脚本是否正确work
 0，在登录场景用人工登录方式，然后把浏览器配置的更像普通浏览器，而不是一眼就被网站识别到是playwright自动化的
 1，将任务执行表里加上：发帖账号 信息
 2，将接口定义拆分到不同的模块或文件中是一种更好的做法。你可以创建一个 routes 文件夹,在其中定义不同功能模块的路由和处理函数。
-
-在后端运行 npm run build 然后 npm start 来测试服务器。
-在前端运行 npm start 来测试 React 应用。
 
 # tips
 许多网站使用 CAPTCHA 来阻止机器人。如果经常遇到 CAPTCHA，考虑使用第三方服务（如 2Captcha、Anti-Captcha）来自动识别和绕过 CAPTCHA。
@@ -26,7 +25,7 @@
 运行：npm install
 
 ## 运行服务端：
-先启动后端服务：在 backend 里运行：npm start
+先启动后端服务：在 backend 里运行：npm run build 先构建js代码，然后npm start
 如果是想要修改代码后自动重启，运行：npm run dev
 
 ## 运行前端：
