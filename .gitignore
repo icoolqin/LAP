@@ -6,3 +6,8 @@ backend/*.log
 frontend/node_modules
 frontend/distgit 
 backend/logs
+data/
+**/data/
+logs/
+**/logs/
+*.log
