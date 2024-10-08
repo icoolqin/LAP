@@ -1,3 +1,4 @@
+//apiClient.ts
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { TrendingTopic } from './types';
 
