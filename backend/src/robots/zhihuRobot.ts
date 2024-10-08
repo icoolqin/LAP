@@ -65,16 +65,16 @@ class ZhihuRobot extends BaseRobot {
       await this.page.click('button:has-text("写回答")');
   
       // Wait for the answer editor to appear
-      await this.page.waitForSelector('div.RichContent-editor', { timeout: 10000 });
+      await this.page.waitForSelector('.InputLike.AnswerForm-editor', { timeout: 10000 });
   
       // Input the content into the editor
-      await this.page.fill('div.RichContent-editor', content);
+      await this.page.fill('.InputLike.AnswerForm-editor', content, { timeout: 10000 });
   
       // Click the "发布" button
-      await this.page.click('button:has-text("发布")');
+      await this.page.click('button:has-text("发布回答")');
   
       // Wait for confirmation that the answer was posted
-      await this.page.waitForSelector('div.AnswerItem', { timeout: 10000 });
+      await this.page.waitForSelector('span:has-text("修改")', { timeout: 10000 });
   
       logger.info(`Successfully posted answer on Zhihu for account: ${this.account.account_username}`);
       return true;
