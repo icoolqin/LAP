@@ -77,7 +77,7 @@ async function requestAIService(messageContent: string, serviceName: string = 'D
   const aiClient = createAIServiceClient(serviceConfig);
 
   try {
-    const response: AxiosResponse<AIServiceResponse> = await aiClient.post('', {
+    const response: AxiosResponse<AIServiceResponse> = await aiClient.post(serviceConfig.url, {
       messages: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: messageContent }
