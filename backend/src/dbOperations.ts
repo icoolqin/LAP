@@ -429,6 +429,10 @@ export class DBOperations {
   
               const hotPostStmt = this.db.prepare('INSERT INTO task_hot_posts (task_id, hot_post_id) VALUES (?, ?)');
               hotPosts.forEach(post => {
+                if (!post.id) {
+                  console.error('Hot post missing id:', post);
+                  return;
+                }
                 hotPostStmt.run(taskId, post.id);
               });
               hotPostStmt.finalize();

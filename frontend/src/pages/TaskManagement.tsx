@@ -176,6 +176,12 @@ function TaskManagement() {
     };
 
     const handleFinish = () => {
+        const validHotPosts = selectedHotPosts.filter(post => post.id);
+
+        if (validHotPosts.length !== selectedHotPosts.length) {
+            message.error('有些选中的帖子缺少 ID，无法保存。');
+            return;
+        }
         const taskData = {
             name: form.getFieldValue('name'),
             stage: isEditing && currentTask ? currentTask.stage : '初创',
@@ -184,7 +190,7 @@ function TaskManagement() {
         const payload = {
             taskData,
             promotionItems: selectedItems,
-            hotPosts: selectedHotPosts,
+            hotPosts: validHotPosts,
         };
 
         const url = isEditing && currentTask ? `${BASE_URL}/tasks/${currentTask.id}` : `${BASE_URL}/tasks/create`;
@@ -255,7 +261,7 @@ function TaskManagement() {
             });
     };
 
-    const fetchHotPosts = (page = 1, pageSize = 10) => {
+    const fetchHotPosts = (page = 1, pageSize = 100) => {
         const params = {
             startTime: hotPostFilters.dateRange ? Math.floor(hotPostFilters.dateRange[0].valueOf() / 1000) : undefined,
             endTime: hotPostFilters.dateRange ? Math.floor(hotPostFilters.dateRange[1].valueOf() / 1000) : undefined,
@@ -273,21 +279,21 @@ function TaskManagement() {
             .then(response => response.json())
             .then(data => {
                 if (data.items && Array.isArray(data.items)) {
-                    setHotPosts(data.items);
-                    setHotPostsPagination({
-                        current: page,
-                        pageSize: pageSize,
-                        total: data.total,
-                    });
-                    setSelectedHotPosts(prevSelected => {
-                        const newItems = data.items.filter((item: HotPost) => !prevSelected.some(prevItem => prevItem.id === item.id));
-                        return [...prevSelected, ...newItems];
-                    });
+                  setHotPosts(data.items);
+                  setHotPostsPagination({
+                    current: page,
+                    pageSize: pageSize,
+                    total: data.total,
+                  });
+                  setSelectedHotPosts(prevSelected => {
+                    const newItems = data.items.filter((item: HotPost) => !prevSelected.some(prevItem => prevItem.id === item.id));
+                    return [...prevSelected, ...newItems];
+                  });
                 } else {
-                    console.error('Received invalid data:', data);
-                    message.error('Failed to fetch hot posts. Please try again.');
+                  console.error('Received invalid data:', data);
+                  message.error('Failed to fetch hot posts. Please try again.');
                 }
-            })
+            })              
             .catch(error => {
                 console.error('Failed to fetch hot posts:', error);
                 message.error('Failed to fetch hot posts. Please try again.');

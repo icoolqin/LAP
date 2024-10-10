@@ -6,6 +6,7 @@ import { fetchAllHotItems, requestAIService } from './apiClient';
 import { executeTask, generateReplies, publishReply  } from './taskExecutionService';
 import { dbOperations } from './dbOperations';
 import  robotManager  from './robotManager';
+import { ensureIdsForItems } from './utils'; 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +16,9 @@ app.use(express.json());
 
 app.get('/update-hot-items', async (_req: Request, res: Response) => {
   try {
-    const items: TrendingTopic[] = await fetchAllHotItems();
+    let items: TrendingTopic[] = await fetchAllHotItems();
+    items = ensureIdsForItems(items);  
+    console.log('Fetched and processed hot items:', items);
     await dbOperations.saveHotItems(items);
     res.json({ success: true });
   } catch (error) {
@@ -49,7 +52,7 @@ app.post('/hot-posts/search', async (req: Request, res: Response) => {
     }
 
     const result = await dbOperations.getHotPosts(filters, page, pageSize);
-    res.json(result);
+    res.json(result); 
   } catch (error) {
     console.error('Error fetching hot posts:', error);
     res.status(500).json({ error: 'Failed to fetch hot posts' });

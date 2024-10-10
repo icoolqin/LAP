@@ -1,3 +1,4 @@
+// HotPosts.tsx
 import React, { useEffect, useState } from 'react';
 import { Table, Button, message } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';

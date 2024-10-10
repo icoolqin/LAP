@@ -1,4 +1,6 @@
 import { URL } from 'url';
+import { v4 as uuidv4 } from 'uuid';
+import { TrendingTopic } from './types';
 
 export function extractMainDomain(urlStr: string): string | null {
   try {
@@ -16,3 +18,18 @@ export function extractMainDomain(urlStr: string): string | null {
     return null;
   }
 }
+
+export function ensureId(item: TrendingTopic): TrendingTopic {
+    if (!item.id) {
+      // 生成一个以 'g-' 开头的 UUID，以区分自动生成的 ID
+      item.id = 'g-' + uuidv4();
+    } else if (!/^\d+$/.test(item.id)) {
+      // 如果 ID 不是纯数字，也生成一个新的 ID
+      item.id = 'g-' + uuidv4();
+    }
+    return item;
+  }
+  
+  export function ensureIdsForItems(items: TrendingTopic[]): TrendingTopic[] {
+    return items.map(ensureId);
+  }
