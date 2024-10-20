@@ -1,21 +1,7 @@
-# 项目进度：
-
-设置Headers和User-Agent: 在发送HTTP请求时，添加适当的Headers，例如User-Agent、Referer、Cookies等，模拟浏览器的正常行为。
-
-我有个项目需要你帮忙把功能写出来，先跟你说下项目背景：
-正在开发一个自动发帖机器人，各网站的账号池已经开发好了，前端如“AccountPoolManagement.js”，账号池有的字段在“AccountPoolManagement.js”代码里也能看到。后端有“robots/baseRobot.js”，功能是各网站发帖机器人的基础共享函数都在这，然后“robots/zhihuRobot.js”就是给知乎网站发帖的机器人。还有个“robotManager.js”服务端代码是用来管理机器人的，就是发帖机器人给三方调用的一个入口功能。接下来我会把上面提到的功能相关代码都给你看看，请仔细阅读，清楚明白已有的功能。
-现在需求是，想把"zhihu.com"域名下的发帖机器人的网站登录功能做好，即用户在“AccountPoolManagement.js”的列表上点击“更新登录状态”按钮后，会弹出一个模态框，模态框里显示“正在获取网站登录二维码”同时有个“处理中”的动效，同时将这条记录的"网站域名”字段传给后台，后台根据域名匹配对应的网站机器人去走登录流程，将登录二维码获取到后显示在模态框里（登录二维码获取就是[zhihu.com](https://www.zhihu.com/signin?)的登录页面截图），当用户扫码登录后，后端机器人感知到登录成功，将playwright的登录状态保存到账号池这条记录里，存到“Playwright登录状态保存”字段下，同时前端这个字段显示成“已获取”，（即后端只要拿到这个字段下有值，给前端就返“已获取”，而不是保存的JSON）。然后模态框关闭。
-附件里就是项目相关代码，关于发帖机器人的部分如，“robots/baseRobot.js”、“robots/zhihuRobot.js”、“robotManager.js”只是写了个大概，而且可能部分代码还写错了，请纠正它，完善一下。
-请一步步思考，将你的思路整理出来，然后开始写这个功能的代码，感谢。如果功能设计上有啥可以改进的你也可以指出来。
-我现在把项目结构及关键代码给到你。请循序最佳开发实践来出代码，并且注意不要把已有功能弄坏了，除了机器人这部分，因为这是新做的。
-
-
 # TODO List：
-先把发帖函数写好，然后给chatGPT看
-使用了StealthPlugin为啥还是被检测出是自动化工具
-保存登录状态的脚本是否正常 -》 使用状态校验是否登录 -》 然后发帖。怎么局部检查脚本是否正确work
-0，在登录场景用人工登录方式，然后把浏览器配置的更像普通浏览器，而不是一眼就被网站识别到是playwright自动化的
-1，将任务执行表里加上：发帖账号 信息
+执行任务前端：发帖按钮loading状态、发帖时间显示
+可以编辑回帖内容：直接编辑 or 让AI重新生成
+
 2，将接口定义拆分到不同的模块或文件中是一种更好的做法。你可以创建一个 routes 文件夹,在其中定义不同功能模块的路由和处理函数。
 
 # tips
@@ -42,7 +28,9 @@
 再启动前端服务：在 frontend里运行：PORT=3001 npm start 
 （指定在3001端口运行，因为3000被backend用了）
 
-网罗天下 - 热门帖子 页面：http://localhost:3000/net-world/hot-posts
+## 运行测试：
+指定某个测试文件运行：npx jest tests/robots/zhihuRobot.test.ts
+运行所有测试：npx jest
 
 ## 关于数据库：
 ### 给表添加字段：
@@ -58,7 +46,7 @@ ALTER TABLE task_executions ADD COLUMN account_id INTEGER;
 
 ## 打印目录树的命令
 tree -I 'node_modules' （忽略node_modules,如果还有忽略的用“|”隔开）
-tree -I 'node_modules|logs'
+tree -I 'node_modules|logs|dist'
 
 ## 每日热点的免费接口
 1，当前在用的：https://luckycola.com.cn/public/docs/shares/api/hotnews.html，每个月需要重新获取一下接口key

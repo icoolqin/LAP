@@ -67,8 +67,21 @@ class ZhihuRobot extends BaseRobot {
       // Wait for the answer editor to appear
       await this.page.waitForSelector('.InputLike.AnswerForm-editor', { timeout: 10000 });
   
-      // Input the content into the editor
-      await this.page.fill('.InputLike.AnswerForm-editor', content, { timeout: 10000 });
+      // Try to find a more specific element within the editor
+      const editorElement = await this.page.locator('.InputLike.AnswerForm-editor [contenteditable="true"]');
+  
+      // If we found a contenteditable element, use page.type()
+      if (await editorElement.count() > 0) {
+        await editorElement.type(content, { delay: 10 }); // Add a small delay between keystrokes
+      } else {
+        // If we couldn't find a specific element, use evaluate()
+        await this.page.evaluate((text) => {
+          const editor = document.querySelector('.InputLike.AnswerForm-editor');
+          if (editor) {
+            editor.innerHTML = text;
+          }
+        }, content);
+      }
   
       // Click the "发布" button
       await this.page.click('button:has-text("发布回答")');
