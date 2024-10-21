@@ -59,7 +59,7 @@ class ZhihuRobot extends BaseRobot {
       }
   
       // Navigate to the post URL
-      await this.page.goto(url, { waitUntil: 'networkidle' });
+      await this.page.goto(url, { waitUntil: 'networkidle', timeout: 10000 });
   
       // Click the "写回答" button
       await this.page.click('button:has-text("写回答")');

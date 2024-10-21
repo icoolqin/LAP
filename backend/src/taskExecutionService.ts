@@ -120,7 +120,21 @@ export async function executeTask(taskId: number, userPrompt: string): Promise<{
 
 async function saveGeneratedReplies(aiResult: string): Promise<void> {
   try {
-    const replies = JSON.parse(aiResult) as Record<string, GeneratedReply>;
+    // 输出原始返回的结果，方便调试
+    // console.log("Raw AI result before cleaning:", aiResult);
+
+    // 使用正则表达式去除 "json复制代码" 等不需要的字符
+    const cleanedResult = aiResult.replace(/^json复制代码/, '').trim();
+    
+    // console.log("Cleaned AI result:", cleanedResult);
+
+    // 检查内容是否为空或不符合 JSON 格式
+    if (!cleanedResult || !cleanedResult.startsWith("{")) {
+      throw new Error('Invalid JSON format in AI result');
+    }
+
+    const replies = JSON.parse(cleanedResult) as Record<string, GeneratedReply>;
+    
     const updateSql = `UPDATE task_executions 
                        SET generated_reply = ?, generated_time = ? 
                        WHERE id = ?`;

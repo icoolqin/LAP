@@ -26,8 +26,8 @@ describe('ZhihuRobot', () => {
   });
 
   test('post function should successfully post content to Zhihu', async () => {
-    const testUrl = 'https://www.zhihu.com/question/663487569'; // 替换为真实的知乎问题 URL
-    const testContent = '这是一个测试回答，请忽略。'; // "This is a test answer, please ignore."
+    const testUrl = 'https://www.zhihu.com/question/802411063'; // 替换为真实的知乎问题 URL
+    const testContent = '我也很无语。'; // "This is a test answer, please ignore."
 
     const result = await zhihuRobot.post(testUrl, testContent);
 

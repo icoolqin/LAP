@@ -1,7 +1,7 @@
 //TaskExecution.tsx
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Table, Modal, Input, Button, message, Typography, Row, Col, Card, Tooltip, Steps, Divider, Space } from 'antd';
+import { Table, Modal, Input, Button, message, Typography, Popconfirm, Row, Col, Card, Tooltip, Steps, Divider, Space } from 'antd';
 import { FormOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
 import moment from 'moment';
 
@@ -43,6 +43,7 @@ const TaskExecution: React.FC = () => {
   const [generateStepStatus, setGenerateStepStatus] = useState<('wait' | 'process' | 'finish' | 'error')[]>(['wait', 'wait', 'wait']);
   const [generateCurrentStep, setGenerateCurrentStep] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [loadingPublish, setLoadingPublish] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     fetchTaskDetails();
@@ -328,25 +329,37 @@ const TaskExecution: React.FC = () => {
         <Button icon={<FormOutlined />} />
       </Tooltip>
       <Tooltip title="发布跟帖">
-        <Button icon={<SendOutlined />} onClick={() => handlePublishReply(record)} />
+        <Button
+          icon={<SendOutlined />}
+          onClick={() => handlePublishReply(record)}
+          loading={loadingPublish[record.id]} 
+        />
       </Tooltip>
       <Tooltip title="删除">
-        <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(record.id)} />
+        <Popconfirm
+          title="你确定要删除这条记录吗？"
+          onConfirm={() => handleDelete(record.id)}  
+          okText="确定"
+          cancelText="取消"
+        >
+          <Button icon={<DeleteOutlined />} danger />
+        </Popconfirm>
       </Tooltip>
     </Space>
   );  
 
   const handlePublishReply = async (record: ExecutionData) => {
+    setLoadingPublish(prev => ({ ...prev, [record.id]: true })); 
     try {
       const response = await fetch(`${BASE_URL}/task-executions/${record.id}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to publish reply');
       }
-  
+
       const result = await response.json();
       if (result.success) {
         message.success('Reply published successfully');
@@ -357,8 +370,10 @@ const TaskExecution: React.FC = () => {
     } catch (error) {
       console.error('Error publishing reply:', error);
       message.error('Failed to publish reply');
+    } finally {
+      setLoadingPublish(prev => ({ ...prev, [record.id]: false })); 
     }
-  };  
+  }; 
 
   const truncateText = (text: string | undefined, length: number): string => {
     if (!text) return '';
