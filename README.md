@@ -32,6 +32,12 @@
 指定某个测试文件运行：npx jest tests/robots/zhihuRobot.test.ts
 运行所有测试：npx jest
 
+## 获取帖子数据：
+### 1，获取各平台热点数据：
+https://github.com/ourongxing/newsnow/blob/main/server/sources/zhihu.ts
+### 2，获取指定关键词帖子：
+要不找开源，要不自己问AI怎么找，要不用playwright
+
 ## 关于数据库：
 ### 给表添加字段：
 ALTER TABLE 表名称 ADD COLUMN 字段名称 字段类型;
