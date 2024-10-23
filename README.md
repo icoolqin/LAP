@@ -116,7 +116,9 @@ tree -I 'node_modules|logs|dist'
 13，
 【账号】wkfxhjq6360299@outlook.com
 【密码】Store.sorryios.com372
-
+14，
+【账号】kr622mn8w4u@outlook.com 
+【密码】Store.sorryios.com
 ### 关于接口：
 
 #### apiClient.js里的AI服务地址
