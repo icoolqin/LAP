@@ -119,6 +119,7 @@ tree -I 'node_modules|logs|dist'
 14，
 【账号】kr622mn8w4u@outlook.com 
 【密码】Store.sorryios.com
+【验证码查询链接】https://sorryios.net?token=b79e0577f1704f17a8e67ee544383e2b
 ### 关于接口：
 
 #### apiClient.js里的AI服务地址
