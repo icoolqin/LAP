@@ -4,7 +4,7 @@ import { TrendingTopic } from './types';
 
 // Lucky Cola API configuration
 const LUCKY_COLA_API_BASE_URL = 'https://luckycola.com.cn/tools';
-const COLA_KEY = 'NYFW61adtakDeM17239768653657p55cd4nIx'; // 请替换为您的实际 ColaKey
+const COLA_KEY = 'uU7WlvRgeXDP3r1729178214598zc5A2ysoTa'; // 请替换为您的实际 ColaKey
 
 // Interfaces
 interface AIServiceConfig {
@@ -114,7 +114,7 @@ async function fetchAllHotItems(): Promise<TrendingTopic[]> {
     
     if (response.data && response.data.code === 0) {
       const items = response.data.data.items as TrendingTopic[];
-      console.log(`Received ${items.length} trending topics.`);
+      // console.log(`Received ${items.length} trending topics.`);
       return items;
     } else {
       console.error('Unexpected response:', response.data);

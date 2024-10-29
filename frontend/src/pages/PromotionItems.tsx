@@ -248,6 +248,8 @@ const PromotionItems: React.FC = () => {
                         <Form.Item name="type" label="标的类型">
                             <Select>
                                 <Select.Option value="微信小程序">微信小程序</Select.Option>
+                                <Select.Option value="Windows软件">Windows软件</Select.Option>
+                                <Select.Option value="浏览器插件">浏览器插件</Select.Option>
                                 <Select.Option value="其他">其他</Select.Option>
                             </Select>
                         </Form.Item>
