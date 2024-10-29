@@ -69,7 +69,7 @@ function TaskManagement() {
     const [hotPosts, setHotPosts] = useState<HotPost[]>([]);
     const [hotPostsPagination, setHotPostsPagination] = useState<HotPostPagination>({
         current: 1,
-        pageSize: 10,
+        pageSize: 100,
         total: 0,
     });
 
