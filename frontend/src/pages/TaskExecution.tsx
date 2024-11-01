@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Table, Modal, Input, Button, message, Typography, Popconfirm, Row, Col, Card, Tooltip, Steps, Divider, Space } from 'antd';
-import { FormOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
+import { FormOutlined, SendOutlined, DeleteOutlined, EditOutlined} from '@ant-design/icons';
 import moment from 'moment';
 
 const { Title } = Typography;
@@ -26,6 +26,7 @@ interface ExecutionData {
   robotName: string;
   accountName: string;
   publishTime: string | null;
+  generate_prompt: string;
 }
 
 const TaskExecution: React.FC = () => {
@@ -44,6 +45,11 @@ const TaskExecution: React.FC = () => {
   const [generateCurrentStep, setGenerateCurrentStep] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [loadingPublish, setLoadingPublish] = useState<{ [key: string]: boolean }>({});
+  const [editReplyVisible, setEditReplyVisible] = useState<boolean>(false);
+  const [editPrompt, setEditPrompt] = useState<string>('');
+  const [editReply, setEditReply] = useState<string>('');
+  const [loadingGenerateSingleReply, setLoadingGenerateSingleReply] = useState<boolean>(false);
+  const [currentEditRecord, setCurrentEditRecord] = useState<ExecutionData | null>(null);
 
   useEffect(() => {
     fetchTaskDetails();
@@ -323,6 +329,113 @@ const TaskExecution: React.FC = () => {
     }
   };
 
+  // “编辑跟帖”函数
+  const handleEditReply = async (record: ExecutionData) => {
+    try {
+      // 获取当前任务的 generate prompt
+      const response = await fetch(`${BASE_URL}/tasks/${id}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      const taskData = await response.json();
+      
+      setEditPrompt(taskData.generate_prompt || ''); // 回显任务级别的生成 prompt
+      setEditReply(record.generated_reply || '');
+      setCurrentEditRecord(record);
+      setEditReplyVisible(true);
+    } catch (error) {
+      console.error('Error fetching task data:', error);
+      message.error('Failed to load task data');
+    }
+  };
+
+  // 生成跟帖内容
+  const handleGenerateSingleReply = async () => {
+      if (!currentEditRecord) return;
+      setLoadingGenerateSingleReply(true);
+
+      const taskData = {
+          promotionItems: [{
+              id: currentEditRecord.promotionItemName,
+              name: currentEditRecord.promotionItemName,
+          }],
+          hotPosts: [{
+              id: currentEditRecord.hotPostTitle,
+              title: currentEditRecord.hotPostTitle,
+          }]
+      };
+
+      const jsonPlaceholder = "{{json}}";
+      let messageContent = editPrompt.includes(jsonPlaceholder)
+          ? editPrompt.replace(jsonPlaceholder, JSON.stringify(taskData))
+          : `${editPrompt}\n\n${JSON.stringify(taskData)}`;
+
+      try {
+          const aiResponse = await fetch(`${BASE_URL}/tasks/${id}/generate-replies`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ generatePrompt: messageContent }),
+          });
+
+          if (!aiResponse.ok) throw new Error('AI generation failed');
+          const result = await aiResponse.json();
+          if (result.success) {
+              setEditReply(result.replyContent);
+              message.success('Generated reply successfully');
+          } else {
+              throw new Error(result.message);
+          }
+      } catch (error) {
+          message.error('Failed to generate reply');
+          console.error(error);
+      } finally {
+          setLoadingGenerateSingleReply(false);
+      }
+  };
+
+  // 保存编辑内容
+  const handleSaveReply = async () => {
+    if (!currentEditRecord) return;
+    try {
+      // 1. 更新当前执行记录的回复内容
+      const updateReplyResponse = await fetch(`${BASE_URL}/tasks/${currentEditRecord.id}/update-reply`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          generated_reply: editReply,
+        }),
+      });
+
+      if (!updateReplyResponse.ok) throw new Error('Failed to save reply');
+
+      // 2. 更新任务的生成 prompt
+      const updatePromptResponse = await fetch(`${BASE_URL}/tasks/${id}/generate-prompt`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          generatePrompt: editPrompt,
+        }),
+      });
+
+      if (!updatePromptResponse.ok) throw new Error('Failed to save generate prompt');
+
+      message.success('Reply and prompt saved successfully');
+      setEditReplyVisible(false);
+      fetchExecutionData(); // 刷新列表数据
+    } catch (error) {
+      message.error('Failed to save changes');
+      console.error(error);
+    }
+  };
+
+  // 取消编辑
+  const handleCancelEditReply = () => {
+      setEditReplyVisible(false);
+      setEditPrompt('');
+      setEditReply('');
+      setCurrentEditRecord(null);
+  };
+
   const ActionButtons: React.FC<{ record: ExecutionData }> = ({ record }) => (
     <Space size="small">
       <Tooltip title="生成跟帖">
@@ -454,8 +567,34 @@ const TaskExecution: React.FC = () => {
       key: 'action',
       fixed: 'right' as const,
       width: 140,
-      render: (_: any, record: ExecutionData) => <ActionButtons record={record} />
-    }
+      render: (_: any, record: ExecutionData) => (
+          <Space size="small">
+              <Tooltip title="编辑跟帖">
+                  <Button
+                      icon={<EditOutlined />}
+                      onClick={() => handleEditReply(record)}
+                  />
+              </Tooltip>
+              <Tooltip title="发布跟帖">
+                  <Button
+                      icon={<SendOutlined />}
+                      onClick={() => handlePublishReply(record)}
+                      loading={loadingPublish[record.id]}
+                  />
+              </Tooltip>
+              <Tooltip title="删除">
+                  <Popconfirm
+                      title="你确定要删除这条记录吗？"
+                      onConfirm={() => handleDelete(record.id)}
+                      okText="确定"
+                      cancelText="取消"
+                  >
+                      <Button icon={<DeleteOutlined />} danger />
+                  </Popconfirm>
+              </Tooltip>
+          </Space>
+        ),
+    },
   ];
 
   return (
@@ -527,6 +666,51 @@ const TaskExecution: React.FC = () => {
           autoSize={{ minRows: 4, maxRows: 8 }}
           disabled={isGenerating}
         />
+      </Modal>
+      
+      <Modal
+        title="编辑跟帖"
+        visible={editReplyVisible}
+        onCancel={handleCancelEditReply}
+        width={800}
+        footer={[
+          <Button key="generate" type="primary" onClick={handleGenerateSingleReply} loading={loadingGenerateSingleReply}>
+            生成跟帖
+          </Button>,
+          <Button key="save" type="primary" onClick={handleSaveReply}>
+            保存
+          </Button>,
+          <Button key="cancel" onClick={handleCancelEditReply}>
+            取消
+          </Button>,
+        ]}
+      >
+        <Row gutter={16}>
+          <Col span={12}>
+            <div style={{ marginBottom: '8px' }}>
+              <Title level={5}>生成跟帖 prompt</Title>
+            </div>
+            <TextArea
+              value={editPrompt}
+              onChange={(e) => setEditPrompt(e.target.value)}
+              placeholder="Enter generate prompt"
+              style={{ height: '300px' }} // 固定高度
+              disabled={loadingGenerateSingleReply}
+            />
+          </Col>
+          <Col span={12}>
+            <div style={{ marginBottom: '8px' }}>
+              <Title level={5}>生成跟帖</Title>
+            </div>
+            <TextArea
+              value={editReply}
+              onChange={(e) => setEditReply(e.target.value)}
+              placeholder="Generated reply"
+              style={{ height: '300px' }} // 固定高度，与左侧保持一致
+              disabled={loadingGenerateSingleReply}
+            />
+          </Col>
+        </Row>
       </Modal>
 
       <Table<ExecutionData>
