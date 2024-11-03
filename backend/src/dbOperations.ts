@@ -55,7 +55,8 @@ export class DBOperations {
         match_count INTEGER,
         stage TEXT,
         match_prompt TEXT,
-        generate_prompt TEXT
+        generate_prompt TEXT,
+        modify_reply_prompt TEXT
       )`,
       `CREATE TABLE IF NOT EXISTS task_promotion_items (
         task_id INTEGER,
@@ -395,6 +396,21 @@ export class DBOperations {
       });
     });
   }
+
+  public updateTaskModifyReplyPrompt(taskId: number, modifyReplyPrompt: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const sql = `UPDATE tasks SET modify_reply_prompt = ? WHERE id = ?`;
+      
+      this.db.run(sql, [modifyReplyPrompt, taskId], function(err) {
+        if (err) {
+          console.error(`Error updating modify_reply_prompt for taskId ${taskId}:`, err.message);
+          reject(err);
+        } else {
+          resolve(this.changes); // Returns the number of rows updated
+        }
+      });
+    });
+  }  
   
   public createTaskWithRelations(taskData: Task, promotionItems: PromotionItem[], hotPosts: TrendingTopic[]): Promise<number> {
     return new Promise((resolve, reject) => {
@@ -539,16 +555,17 @@ export class DBOperations {
   }
 
   //Get execution by ID
-  public getExecutionById(executionId: number): Promise<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string }> {
+  public getExecutionById(executionId: number): Promise<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string; modify_reply_prompt: string; task_id: number }> {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT te.*, pi.name AS promotionItemName, tt.title AS hotPostTitle, tt.url AS hotPostUrl
+        SELECT te.*, pi.name AS promotionItemName, tt.title AS hotPostTitle, tt.url AS hotPostUrl, t.modify_reply_prompt, t.id as task_id
         FROM task_executions te
         LEFT JOIN promotion_items pi ON te.promotion_item_id = pi.id
         LEFT JOIN trending_topics tt ON te.hot_post_id = tt.id
+        LEFT JOIN tasks t ON te.task_id = t.id
         WHERE te.id = ?
       `;
-      this.db.get<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string }>(
+      this.db.get<TaskExecution & { promotionItemName: string; hotPostTitle: string; hotPostUrl: string; modify_reply_prompt: string; task_id: number }>(
         sql,
         [executionId],
         (err, row) => {
@@ -573,6 +590,65 @@ export class DBOperations {
           reject(err);
         } else {
           resolve();
+        }
+      });
+    });
+  }
+
+  // Add method to get a promotion item by ID
+  public getPromotionItemById(id: number): Promise<PromotionItem> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM promotion_items WHERE id = ?`;
+      this.db.get<PromotionItem>(sql, [id], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row);
+        }
+      });
+    });
+  }
+
+  // Add method to get a hot post by ID
+  public getHotPostById(id: string): Promise<TrendingTopic> {
+    return new Promise((resolve, reject) => {
+      const sql = `SELECT * FROM trending_topics WHERE id = ?`;
+      this.db.get<TrendingTopic>(sql, [id], (err, row) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(row);
+        }
+      });
+    });
+  }
+
+  // Add method to update a task execution record
+  public updateTaskExecution(id: number, updatedFields: Partial<TaskExecution>): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      Object.entries(updatedFields).forEach(([key, value]) => {
+        if (value !== undefined) {
+          updates.push(`${key} = ?`);
+          values.push(value);
+        }
+      });
+
+      if (updates.length === 0) {
+        resolve(0); // No fields to update
+        return;
+      }
+
+      const sql = `UPDATE task_executions SET ${updates.join(', ')} WHERE id = ?`;
+      values.push(id);
+
+      this.db.run(sql, values, function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(this.changes);
         }
       });
     });

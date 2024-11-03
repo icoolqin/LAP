@@ -18,6 +18,7 @@ interface TaskDetails {
 
 interface ExecutionData {
   id: string;
+  task_id: string;
   promotionItemName: string;
   hotPostTitle: string;
   hotPostUrl: string;
@@ -27,6 +28,7 @@ interface ExecutionData {
   accountName: string;
   publishTime: string | null;
   generate_prompt: string;
+  modify_reply_prompt: string;
 }
 
 const TaskExecution: React.FC = () => {
@@ -275,7 +277,7 @@ const TaskExecution: React.FC = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      console.log('Execution data fetched:', data);
+      // console.log('Execution data fetched:', data);
       setExecutionData(data);
     } catch (error) {
       console.error('Error fetching execution data:', error);
@@ -332,96 +334,74 @@ const TaskExecution: React.FC = () => {
   // “编辑跟帖”函数
   const handleEditReply = async (record: ExecutionData) => {
     try {
-      // 获取当前任务的 generate prompt
-      const response = await fetch(`${BASE_URL}/tasks/${id}`);
+      // Fetch execution record
+      const response = await fetch(`${BASE_URL}/task-executions/${record.id}`);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
-      const taskData = await response.json();
+      const executionData = await response.json();
       
-      setEditPrompt(taskData.generate_prompt || ''); // 回显任务级别的生成 prompt
-      setEditReply(record.generated_reply || '');
-      setCurrentEditRecord(record);
+      setEditPrompt(executionData.modify_reply_prompt || ''); // Use 'modify_reply_prompt' from tasks table
+      setEditReply(executionData.generated_reply || '');
+      setCurrentEditRecord(executionData); // Use executionData instead of record
       setEditReplyVisible(true);
     } catch (error) {
-      console.error('Error fetching task data:', error);
-      message.error('Failed to load task data');
+      console.error('Error fetching execution data:', error);
+      message.error('Failed to load execution data');
     }
   };
 
+
   // 生成跟帖内容
   const handleGenerateSingleReply = async () => {
-      if (!currentEditRecord) return;
-      setLoadingGenerateSingleReply(true);
-
-      const taskData = {
-          promotionItems: [{
-              id: currentEditRecord.promotionItemName,
-              name: currentEditRecord.promotionItemName,
-          }],
-          hotPosts: [{
-              id: currentEditRecord.hotPostTitle,
-              title: currentEditRecord.hotPostTitle,
-          }]
-      };
-
-      const jsonPlaceholder = "{{json}}";
-      let messageContent = editPrompt.includes(jsonPlaceholder)
-          ? editPrompt.replace(jsonPlaceholder, JSON.stringify(taskData))
-          : `${editPrompt}\n\n${JSON.stringify(taskData)}`;
-
-      try {
-          const aiResponse = await fetch(`${BASE_URL}/tasks/${id}/generate-replies`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ generatePrompt: messageContent }),
-          });
-
-          if (!aiResponse.ok) throw new Error('AI generation failed');
-          const result = await aiResponse.json();
-          if (result.success) {
-              setEditReply(result.replyContent);
-              message.success('Generated reply successfully');
-          } else {
-              throw new Error(result.message);
-          }
-      } catch (error) {
-          message.error('Failed to generate reply');
-          console.error(error);
-      } finally {
-          setLoadingGenerateSingleReply(false);
+    if (!currentEditRecord) return;
+    setLoadingGenerateSingleReply(true);
+  
+    try {
+      const response = await fetch(`${BASE_URL}/task-executions/${currentEditRecord.id}/generate-reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: editPrompt,
+        }),
+      });
+  
+      if (!response.ok) throw new Error('Failed to generate reply');
+      const result = await response.json();
+      if (result.success) {
+        setEditReply(result.replyContent); // Directly use AI response
+        message.success('Generated reply successfully');
+      } else {
+        throw new Error(result.error || 'Failed to generate reply');
       }
+    } catch (error) {
+      message.error('Failed to generate reply');
+      console.error(error);
+    } finally {
+      setLoadingGenerateSingleReply(false);
+    }
   };
 
   // 保存编辑内容
   const handleSaveReply = async () => {
     if (!currentEditRecord) return;
+
     try {
-      // 1. 更新当前执行记录的回复内容
-      const updateReplyResponse = await fetch(`${BASE_URL}/tasks/${currentEditRecord.id}/update-reply`, {
+      const updateReplyResponse = await fetch(`${BASE_URL}/task-executions/${currentEditRecord.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           generated_reply: editReply,
+          modify_reply_prompt: editPrompt,
+          tasksId: currentEditRecord.task_id,  // Use task_id from currentEditRecord
         }),
       });
 
       if (!updateReplyResponse.ok) throw new Error('Failed to save reply');
 
-      // 2. 更新任务的生成 prompt
-      const updatePromptResponse = await fetch(`${BASE_URL}/tasks/${id}/generate-prompt`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          generatePrompt: editPrompt,
-        }),
-      });
-
-      if (!updatePromptResponse.ok) throw new Error('Failed to save generate prompt');
-
       message.success('Reply and prompt saved successfully');
       setEditReplyVisible(false);
-      fetchExecutionData(); // 刷新列表数据
+      fetchExecutionData(); // Refresh list data
     } catch (error) {
       message.error('Failed to save changes');
       console.error(error);
@@ -601,7 +581,11 @@ const TaskExecution: React.FC = () => {
     <div className="task-execution-container">
       <Row gutter={16} style={{ marginBottom: 16 }} align="middle" justify="space-between">
         <Col span={24}>
-          <Card className="task-info-card" bodyStyle={{ padding: '12px 24px' }}>
+          <Card className="task-info-card" styles={{ 
+             body: { 
+                padding: '12px 24px' 
+              } 
+            }}>
             <Row gutter={16} align="middle">
               <Col>
                 <Tooltip title={taskDetails?.name}>
@@ -626,7 +610,7 @@ const TaskExecution: React.FC = () => {
 
       <Modal
         title="匹配推广标的与网罗帖子"
-        visible={matchPromptVisible}
+        open={matchPromptVisible}
         onOk={handleMatchPromptOk}
         onCancel={handleMatchPromptCancel}
         width={900}
@@ -648,7 +632,7 @@ const TaskExecution: React.FC = () => {
 
       <Modal
         title="生成跟帖"
-        visible={generateReplyVisible}
+        open={generateReplyVisible}
         onOk={handleGenerateReplyOk}
         onCancel={handleGenerateReplyCancel}
         width={900}
@@ -670,7 +654,7 @@ const TaskExecution: React.FC = () => {
       
       <Modal
         title="编辑跟帖"
-        visible={editReplyVisible}
+        open={editReplyVisible}
         onCancel={handleCancelEditReply}
         width={800}
         footer={[
@@ -688,7 +672,7 @@ const TaskExecution: React.FC = () => {
         <Row gutter={16}>
           <Col span={12}>
             <div style={{ marginBottom: '8px' }}>
-              <Title level={5}>生成跟帖 prompt</Title>
+              <Title level={5}>编辑跟帖prompt</Title>
             </div>
             <TextArea
               value={editPrompt}

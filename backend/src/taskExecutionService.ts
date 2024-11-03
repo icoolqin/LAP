@@ -220,6 +220,57 @@ export async function generateReplies(taskId: number, userPrompt: string): Promi
   }
 }
 
+// Add function to generate reply for a single execution
+export async function generateSingleReply(executionId: number, userPrompt: string): Promise<string> {
+  try {
+    // Fetch the execution record
+    const executionRecord = await dbOperations.getExecutionById(executionId);
+
+    if (!executionRecord) {
+      throw new Error(`Execution record with id ${executionId} not found`);
+    }
+
+    const promotionItem = await dbOperations.getPromotionItemById(executionRecord.promotion_item_id);
+    const hotPost = await dbOperations.getHotPostById(executionRecord.hot_post_id);
+
+    if (!promotionItem || !hotPost) {
+      throw new Error('Missing promotion item or hot post data');
+    }
+
+    const taskData = {
+      promotionItems: {
+        id: promotionItem.id,
+        name: promotionItem.name,
+        description: promotionItem.description,
+        method: promotionItem.method,
+        type: promotionItem.type
+      },
+      hotPosts: {
+        id: hotPost.id,
+        title: hotPost.title,
+        sitename: hotPost.sitename
+      }
+    };
+
+    const jsonPlaceholder = "{{json}}";
+    let messageContent = userPrompt;
+    if (messageContent.includes(jsonPlaceholder)) {
+      messageContent = messageContent.replace(jsonPlaceholder, JSON.stringify(taskData));
+    } else {
+      messageContent += `\n\n${JSON.stringify(taskData)}`;
+    }
+
+    const aiResult = await requestAIService(messageContent);
+
+    // Return the AI response directly
+    return aiResult;
+
+  } catch (error) {
+    console.error('Error generating single reply:', error);
+    throw error;
+  }
+}
+
 export async function publishReply(executionId: number): Promise<{ success: boolean }> {
   try {
     // Get the execution record

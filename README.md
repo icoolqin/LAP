@@ -9,7 +9,9 @@
 ## 把文字内容转成图片来表达，使用SVG、mermaid语言：
 写出的代码转图片，另外再把二维码贴上去
 
-## 
+## 可能用到的开源项目：
+LLM控制浏览器：https://github.com/Skyvern-AI/Skyvern
+爬虫：
 
 # tips
 许多网站使用 CAPTCHA 来阻止机器人。如果经常遇到 CAPTCHA，考虑使用第三方服务（如 2Captcha、Anti-Captcha）来自动识别和绕过 CAPTCHA。
@@ -49,6 +51,9 @@ https://github.com/ourongxing/newsnow/blob/main/server/sources/zhihu.ts
 ### 给表添加字段：
 ALTER TABLE 表名称 ADD COLUMN 字段名称 字段类型;
 ALTER TABLE task_executions ADD COLUMN account_id INTEGER;
+### 删除表字段：
+ALTER TABLE 表名称 DROP COLUMN 字段名称 字段类型;
+ALTER TABLE task_executions DROP COLUMN modify_reply_prompt;
 
 ## 本地llama运行命令
 命令：ollama run llama3.1

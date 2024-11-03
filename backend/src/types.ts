@@ -36,6 +36,7 @@ export interface TrendingTopic {
     stage: string;
     match_prompt?: string;
     generate_prompt?: string;
+    modify_reply_prompt?: string | null;
   }
   
   export interface TaskExecution {

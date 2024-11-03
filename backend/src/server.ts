@@ -3,7 +3,7 @@ import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { TrendingTopic, PromotionItem, Task, TaskExecution, Account  } from './types';
 import { fetchAllHotItems, requestAIService } from './apiClient';
-import { executeTask, generateReplies, publishReply  } from './taskExecutionService';
+import { executeTask, generateReplies, publishReply, generateSingleReply  } from './taskExecutionService';
 import { dbOperations } from './dbOperations';
 import  robotManager  from './robotManager';
 import { ensureIdsForItems } from './utils'; 
@@ -18,7 +18,7 @@ app.get('/update-hot-items', async (_req: Request, res: Response) => {
   try {
     let items: TrendingTopic[] = await fetchAllHotItems();
     items = ensureIdsForItems(items);  
-    console.log('Fetched and processed hot items:', items);
+    // console.log('Fetched and processed hot items:', items);
     await dbOperations.saveHotItems(items);
     res.json({ success: true });
   } catch (error) {
@@ -243,6 +243,60 @@ app.get('/tasks/:id/execution', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching task execution details:', error);
     res.status(500).json({ error: 'Failed to fetch task execution details' });
+  }
+});
+
+// Add endpoint to get execution record by ID
+app.get('/task-executions/:id', async (req: Request, res: Response) => {
+  const executionId = parseInt(req.params.id, 10);
+  try {
+    const execution = await dbOperations.getExecutionById(executionId);
+    if (execution) {
+      res.json(execution);
+    } else {
+      res.status(404).json({ error: 'Execution not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching execution:', error);
+    res.status(500).json({ error: 'Failed to fetch execution' });
+  }
+});
+
+// Add endpoint to update execution record
+app.put('/task-executions/:executionId', async (req: Request, res: Response) => {
+  const executionId = parseInt(req.params.executionId, 10);
+  const { generated_reply, modify_reply_prompt, tasksId } = req.body;
+
+  try {
+    // Update the task execution record and set generated_time to current time
+    await dbOperations.updateTaskExecution(executionId, {
+      generated_reply,
+      generated_time: Date.now().toString(),
+    });
+
+    // Update the corresponding task's modify_reply_prompt field using tasksId
+    if (tasksId) {
+      await dbOperations.updateTaskModifyReplyPrompt(tasksId, modify_reply_prompt);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating task execution:', error);
+    res.status(500).json({ error: 'Failed to update task execution' });
+  }
+});
+
+// Add endpoint to generate reply for a single execution
+app.post('/task-executions/:id/generate-reply', async (req: Request, res: Response) => {
+  const executionId = parseInt(req.params.id, 10);
+  const { prompt } = req.body;
+
+  try {
+    const replyContent = await generateSingleReply(executionId, prompt);
+    res.status(200).json({ success: true, replyContent });
+  } catch (error) {
+    console.error('Error generating single reply:', error);
+    res.status(500).json({ error: 'Failed to generate reply' });
   }
 });
 
