@@ -26,7 +26,7 @@ interface ExecutionData {
   generated_time: string;
   robotName: string;
   accountName: string;
-  publishTime: string | null;
+  publish_time: string | null;
   generate_prompt: string;
   modify_reply_prompt: string;
 }
@@ -538,8 +538,8 @@ const TaskExecution: React.FC = () => {
     { title: '发布账号', dataIndex: 'accountName', key: 'accountName' },
     {
       title: '发布时间',
-      dataIndex: 'publishTime',
-      key: 'publishTime',
+      dataIndex: 'publish_time',
+      key: 'publish_time',
       render: (text: string | null) => text ? moment(parseInt(text)).format('YYYY-MM-DD HH:mm:ss') : '-',
     },
     {
