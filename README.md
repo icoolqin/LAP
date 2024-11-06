@@ -2,12 +2,22 @@
 执行任务前端：发帖时间显示
 可以编辑回帖内容：直接编辑 or 让AI重新生成
 
-
 2，将接口定义拆分到不同的模块或文件中是一种更好的做法。你可以创建一个 routes 文件夹,在其中定义不同功能模块的路由和处理函数。
 
 # 创意备注：
 ## 把文字内容转成图片来表达，使用SVG、mermaid语言：
 写出的代码转图片，另外再把二维码贴上去
+
+# vscode的快捷键：
+折叠所有函数/代码块:Ctrl + K, Ctrl + 数字
+展开所有函数/代码块:Ctrl + K, Ctrl + J
+
+折叠当前函数/代码块:
+Windows/Linux: Ctrl + Shift + [
+Mac: Cmd + Option + [
+展开当前函数/代码块:
+Windows/Linux: Ctrl + Shift + ]
+Mac: Cmd + Option + ]
 
 ## 可能用到的开源项目：
 LLM控制浏览器：https://github.com/Skyvern-AI/Skyvern
