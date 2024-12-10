@@ -144,7 +144,7 @@ tree -I 'node_modules|logs|dist'
 【验证码查询链接】https://sorryios.net?token=b79e0577f1704f17a8e67ee544383e2b
 15，
 【账号】tzhqeqetya40@outlook.com
-【密码】Store.sorryios.com
+【密码】Store.sorryios.com500
 【验证码查询链接】https://sorryios.net?token=2dffc97e15014131915a890e514feb27
 ### 关于接口：
 
